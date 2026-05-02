@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const recipient = process.env.CONTACT_EMAIL || "info@alphasolutions.software";
+    const recipient = process.env.CONTACT_EMAIL || "alphaassistant.alpha@gmail.com";
     const smtpHost = process.env.SMTP_HOST;
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;

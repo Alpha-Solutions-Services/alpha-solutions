@@ -229,8 +229,8 @@ export default function ContactPage() {
             {[
               {
                 label: "Email",
-                value: "info@alphasolutions.software",
-                href: "mailto:info@alphasolutions.software",
+                value: "alphaassistant.alpha@gmail.com",
+                href: "mailto:alphaassistant.alpha@gmail.com",
               },
               {
                 label: "WhatsApp",

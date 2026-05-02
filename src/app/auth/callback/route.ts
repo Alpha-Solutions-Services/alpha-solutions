@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAllowedAdminEmail } from "@/lib/admin-allowlist";
 
 /**
  * Completes the browser OAuth flow (e.g. Google) and sets the session cookie.
@@ -18,9 +19,12 @@ export async function GET(request: NextRequest) {
     rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")
       ? rawNext
       : "/portal/dashboard";
+  const nextWantsAdmin = next === "/admin" || next.startsWith("/admin/");
 
   if (!url || !anon || !code) {
-    return NextResponse.redirect(`${origin}/portal/login?error=auth`);
+    return NextResponse.redirect(
+      `${origin}${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`
+    );
   }
 
   const cookieStore = cookies();
@@ -39,8 +43,23 @@ export async function GET(request: NextRequest) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${origin}/portal/login?error=auth`);
+    return NextResponse.redirect(
+      `${origin}${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`
+    );
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isAdmin = isAllowedAdminEmail(user?.email);
+
+  // Enforce portal vs admin destinations so users land in the correct UI.
+  if (isAdmin) {
+    const adminNext = nextWantsAdmin ? next : "/admin/dashboard";
+    return NextResponse.redirect(`${origin}${adminNext}`);
+  }
+
+  const portalNext = nextWantsAdmin ? "/portal/dashboard" : next;
+  return NextResponse.redirect(`${origin}${portalNext}`);
 }
