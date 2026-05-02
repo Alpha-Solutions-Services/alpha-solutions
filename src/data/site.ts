@@ -9,7 +9,7 @@ export const CALENDLY_BOOKING_URL =
   "https://calendly.com/alphaassistant-alpha/30min";
 
 /** Default Open Graph / Twitter image (absolute URL). */
-export const DEFAULT_OG_IMAGE_PATH = "/opengraph-image";
+export const DEFAULT_OG_IMAGE_PATH = "/alpha-logo.png";
 
 export function absoluteUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;

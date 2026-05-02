@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import type { SanityImageSource } from "@sanity/image-url";
 import { SITE_NAME, absoluteUrl } from "@/data/site";
 import { urlForImage } from "@/lib/sanity/image";
 import { getAllProjects } from "@/lib/sanity/queries";
@@ -29,7 +30,7 @@ type SanityProject = {
   status?: string | null;
   technologies?: string[] | null;
   projectUrl?: string | null;
-  featuredImage?: unknown;
+  featuredImage?: SanityImageSource | null;
 };
 
 const TRUSTED_BUSINESSES = [

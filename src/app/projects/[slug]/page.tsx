@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { PortableTextBlock } from "@portabletext/types";
+import type { SanityImageSource } from "@sanity/image-url";
 import { BlogPostBody } from "@/components/blog/BlogPostBody";
 import { SITE_NAME, absoluteUrl } from "@/data/site";
 import { urlForImage } from "@/lib/sanity/image";
@@ -16,7 +17,7 @@ type SanityProject = {
   slug?: { current?: string | null } | null;
   client?: string | null;
   description?: string | null;
-  featuredImage?: unknown;
+  featuredImage?: SanityImageSource | null;
   projectUrl?: string | null;
   technologies?: string[] | null;
   status?: string | null;

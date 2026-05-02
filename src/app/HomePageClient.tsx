@@ -771,7 +771,7 @@ export default function HomePageClient({
                   className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25 p-6 text-left"
                 >
                   <p className="text-sm leading-relaxed text-[var(--color-muted)]">
-                    "{item.quote}"
+                    &quot;{item.quote}&quot;
                   </p>
                   <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                     {item.tag}
