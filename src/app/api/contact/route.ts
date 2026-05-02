@@ -12,6 +12,17 @@ const schema = z.object({
   message: z.string().min(10),
 });
 
+function stripWrappingQuotes(value: string) {
+  const v = value.trim();
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    return v.slice(1, -1).trim();
+  }
+  return v;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -42,14 +53,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const recipient = process.env.CONTACT_EMAIL || "alphaassistant.alpha@gmail.com";
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    const recipient =
+      process.env.CONTACT_EMAIL || "alphaassistant.alpha@gmail.com";
+    const smtpHost = process.env.SMTP_HOST?.trim();
+    const smtpUser = process.env.SMTP_USER?.trim();
+    const smtpPassRaw = process.env.SMTP_PASS;
     const smtpPort = Number(process.env.SMTP_PORT || 587);
     const smtpSecure = process.env.SMTP_SECURE === "true";
+    const smtpPass = smtpPassRaw
+      ? stripWrappingQuotes(smtpPassRaw).replace(/\s+/g, "")
+      : undefined;
 
-    if (smtpHost && smtpUser && smtpPass) {
+    const smtpConfigured = Boolean(smtpHost && smtpUser && smtpPass);
+    if (!smtpConfigured && process.env.NODE_ENV === "production") {
+      console.error(
+        "[contact] SMTP not configured in production — refusing to return success."
+      );
+      return NextResponse.json(
+        { error: "Email delivery is not configured" },
+        { status: 500 }
+      );
+    }
+
+    if (smtpConfigured && smtpHost && smtpUser && smtpPass) {
       const transporter = nodemailer.createTransport({
         host: smtpHost,
         port: smtpPort,
@@ -81,14 +107,24 @@ export async function POST(req: NextRequest) {
         <p><strong>Message:</strong><br/>${data.message.replace(/\n/g, "<br/>")}</p>
       `;
 
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || smtpUser,
-        to: recipient,
-        replyTo: data.email,
-        subject,
-        text,
-        html,
-      });
+      try {
+        const fromRaw = process.env.SMTP_FROM;
+        const from = fromRaw ? stripWrappingQuotes(fromRaw) : smtpUser;
+        await transporter.sendMail({
+          from,
+          to: recipient,
+          replyTo: data.email,
+          subject,
+          text,
+          html,
+        });
+      } catch (err) {
+        console.error("[contact] SMTP sendMail failed:", err);
+        return NextResponse.json(
+          { error: "Could not send email" },
+          { status: 502 }
+        );
+      }
     } else {
       console.warn(
         "[contact] SMTP not configured. Inquiry saved to DB but no email sent."
@@ -97,7 +133,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+    }
     console.error("[contact] API error:", error);
-    return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

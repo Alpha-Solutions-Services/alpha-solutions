@@ -2,12 +2,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getPortalUser } from "@/lib/portal/auth";
+import { isAdminUser } from "@/lib/admin-auth";
 import { PortalLoginForm } from "@/components/portal/PortalLoginForm";
 import { isPortalAuthConfigured } from "@/lib/supabase/env";
 
 export default async function PortalLoginPage() {
   const user = await getPortalUser();
   if (user) {
+    if (isAdminUser(user)) {
+      redirect("/admin/dashboard");
+    }
     redirect("/portal/dashboard");
   }
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { absoluteUrl, SITE_URL } from "@/data/site";
+import { absoluteUrl, DEFAULT_OG_IMAGE_PATH, SITE_URL } from "@/data/site";
 import { PricingPageClient } from "./PricingPageClient";
 
 const title = "Pricing";
@@ -23,7 +23,7 @@ const keywords = [
 
 export async function generateMetadata(): Promise<Metadata> {
   const canonical = `${SITE_URL}/pricing`;
-  const ogImage = absoluteUrl("/alpha-logo.png");
+  const ogImage = absoluteUrl(DEFAULT_OG_IMAGE_PATH);
 
   return {
     title,

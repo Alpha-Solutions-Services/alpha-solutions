@@ -57,19 +57,12 @@ export default function TwitterImage() {
             boxShadow: "0 40px 120px rgba(0,0,0,0.45)",
           }}
         >
-          <div
-            style={{
-              fontSize: 200,
-              lineHeight: 1,
-              fontWeight: 900,
-              color: "rgba(255,255,255,0.96)",
-              fontFamily:
-                'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial',
-              transform: "translateY(6px)",
-            }}
-          >
-            A
-          </div>
+          <svg width="240" height="240" viewBox="0 0 512 512" aria-hidden>
+            <path
+              d="M256 128c10 0 19 5 24 14l92 170c8 15-3 34-20 34h-52c-9 0-18-5-22-13l-22-41h-63l-22 41c-4 8-13 13-22 13h-52c-17 0-28-19-20-34l92-170c5-9 14-14 24-14zm0 83-33 62h66l-33-62z"
+              fill="rgba(255,255,255,0.96)"
+            />
+          </svg>
         </div>
       </div>
     ),

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getPortalUser, portalDisplayName } from "@/lib/portal/auth";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
+import { isAdminUser } from "@/lib/admin-auth";
 
 export default async function PortalDashboardLayout({
   children,
@@ -10,6 +11,9 @@ export default async function PortalDashboardLayout({
   const user = await getPortalUser();
   if (!user) {
     redirect("/portal/login");
+  }
+  if (isAdminUser(user)) {
+    redirect("/admin/dashboard");
   }
 
   const name = portalDisplayName(user);

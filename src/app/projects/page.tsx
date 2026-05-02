@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     "See our work — web development, mobile apps, SaaS, e-commerce, and trucking tech. Alpha Solutions Services LLC, West Jordan Utah.",
   openGraph: {
     title: "Our Work | Alpha Solutions Services LLC",
-    images: [{ url: "/og/default.png", width: 1200, height: 630 }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 

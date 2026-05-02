@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BlogPostBody } from "@/components/blog/BlogPostBody";
-import { SITE_NAME, SITE_URL, absoluteUrl } from "@/data/site";
+import { DEFAULT_OG_IMAGE_PATH, SITE_NAME, SITE_URL, absoluteUrl } from "@/data/site";
 import { urlForImage } from "@/lib/sanity/image";
 import { getAllPosts, getPostBySlug } from "@/lib/sanity/queries";
 
@@ -62,7 +62,7 @@ export async function generateMetadata({
     `Read "${title}" on the ${SITE_NAME} blog.`;
   const canonical = `${SITE_URL}/blog/${params.slug}`;
   const ogFromImage = urlForImage(post.image, 1200);
-  const ogImage = ogFromImage ?? absoluteUrl("/alpha-logo.png");
+  const ogImage = ogFromImage ?? absoluteUrl(DEFAULT_OG_IMAGE_PATH);
 
   return {
     title,
@@ -89,7 +89,8 @@ export async function generateMetadata({
 
 function blogPostingJsonLd(post: BlogPostDoc, slug: string) {
   const url = `${SITE_URL}/blog/${slug}`;
-  const imageUrl = urlForImage(post.image, 1200) ?? absoluteUrl("/alpha-logo.png");
+  const imageUrl =
+    urlForImage(post.image, 1200) ?? absoluteUrl(DEFAULT_OG_IMAGE_PATH);
   const published = post.publishedAt ?? undefined;
   const modified = post._updatedAt ?? post.publishedAt ?? undefined;
 

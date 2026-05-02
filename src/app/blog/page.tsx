@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { SanityImageSource } from "@sanity/image-url";
 import Image from "next/image";
 import Link from "next/link";
-import { absoluteUrl, SITE_URL } from "@/data/site";
+import { absoluteUrl, DEFAULT_OG_IMAGE_PATH, SITE_URL } from "@/data/site";
 import { urlForImage } from "@/lib/sanity/image";
 import { getAllPosts } from "@/lib/sanity/queries";
 
@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description =
     "Insights on web development, SaaS, AI automation, and digital operations from Alpha Solutions Services LLC.";
   const canonical = `${SITE_URL}/blog`;
-  const ogImage = absoluteUrl("/alpha-logo.png");
+  const ogImage = absoluteUrl(DEFAULT_OG_IMAGE_PATH);
 
   return {
     title,
