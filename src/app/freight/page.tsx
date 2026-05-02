@@ -101,6 +101,29 @@ const dispatchSteps = [
   },
 ] as const;
 
+const freightFaqs = [
+  {
+    q: "Do you dispatch for owner-operators only or also for fleets?",
+    a: "Both. We work with solo owner-operators and fleets up to 20+ trucks.",
+  },
+  {
+    q: "What is your dispatch fee?",
+    a: "8% of gross per load for standard service, 6% for long-term contracts.",
+  },
+  {
+    q: "What lanes and freight types do you cover?",
+    a: "Dry van, reefer, flatbed, and step deck. We cover all 48 continental US states.",
+  },
+  {
+    q: "Do you handle FMCSA compliance paperwork?",
+    a: "Yes. We offer full FMCSA compliance support as a separate service including DOT filings, drug consortium enrollment, and safety audits.",
+  },
+  {
+    q: "How do I get started?",
+    a: "WhatsApp us or fill out the contact form. We onboard new carriers within 24-48 hours.",
+  },
+] as const;
+
 export default function FreightLandingPage() {
   return (
     <main className="min-h-screen bg-[var(--color-bg)]">
@@ -317,6 +340,37 @@ export default function FreightLandingPage() {
                   {s.body}
                 </p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* WhatsApp CTA */}
+      <section className="border-b border-[var(--color-border)] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <h2
+            className="text-center text-3xl font-bold text-[var(--color-text)] sm:text-4xl"
+            style={{ fontFamily: "var(--font-display), sans-serif" }}
+          >
+            Freight dispatch FAQ
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-[var(--color-muted)]">
+            Practical answers for trucking dispatch services, FMCSA compliance,
+            and carrier onboarding.
+          </p>
+          <div className="mt-10 grid gap-3">
+            {freightFaqs.map((item) => (
+              <details
+                key={item.q}
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-4"
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-[var(--color-text)]">
+                  {item.q}
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+                  {item.a}
+                </p>
+              </details>
             ))}
           </div>
         </div>

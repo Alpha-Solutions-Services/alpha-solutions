@@ -12,6 +12,7 @@ import clsx from "clsx";
 import { CALENDLY_BOOKING_URL } from "@/data/site";
 import { PILLARS, SERVICES, type Service, type ServiceStatus } from "@/data/services";
 import { FreeResourcesSection } from "@/components/pricing/FreeResourcesSection";
+import { PaymentMethodsSection } from "@/components/shared/PaymentMethodsSection";
 
 type TabKey = "all" | 1 | 2 | 3 | 4 | 5;
 
@@ -305,6 +306,12 @@ export function PricingPageClient() {
       </section>
 
       <FreeResourcesSection />
+
+      <section className="px-4 pb-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <PaymentMethodsSection />
+        </div>
+      </section>
 
       {/* Pillar tabs + table */}
       <section className="px-4 py-12 sm:px-6 lg:px-8">

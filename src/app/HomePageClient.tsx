@@ -37,91 +37,53 @@ const PILLAR_COPY: Record<PillarId, string> = {
 const pillarExploreHref = (id: PillarId) =>
   id === 5 ? "/freight" : `/services/${PILLARS[id].slug}`;
 
-function StripeLogo({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      role="img"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="Stripe"
-    >
-      <title>Stripe</title>
-      <path
-        fill="#635BFF"
-        d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.81 2.525-6.385 0-4.168-2.451-5.758-6.591-7.305z"
-      />
-    </svg>
-  );
-}
+const whyChooseCards = [
+  {
+    icon: "US",
+    title: "US-Registered, Pakistan-Powered",
+    text: "US LLC accountability with a dedicated Pakistan delivery team - you get Western standards at competitive rates.",
+  },
+  {
+    icon: "FR",
+    title: "Founder Reviews Every Project",
+    text: "Muhammad Mikran personally oversees all deliveries. No handoffs to junior staff without oversight.",
+  },
+  {
+    icon: "LP",
+    title: "Live Client Portal",
+    text: "Track your project milestones in real time. No surprise delays, no chasing updates.",
+  },
+  {
+    icon: "CR",
+    title: "5.0 Rated on Clutch",
+    text: "3 verified reviews from US and international clients. 100% satisfaction rate across all engagements.",
+  },
+] as const;
 
-function PaymentMethodsStrip({ className }: { className?: string }) {
-  return (
-    <div
-      className={`flex flex-wrap items-center justify-center gap-8 ${className ?? ""}`}
-    >
-      <div className="flex flex-col items-center">
-        <StripeLogo className="h-8 w-8 opacity-90" />
-        <span className="mt-1 text-xs text-[var(--color-muted)]">Stripe</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <Image
-          src={`/banks/${encodeURIComponent("payoneer logo.png")}`}
-          alt="Payoneer"
-          width={120}
-          height={32}
-          className="object-contain opacity-80"
-          style={{ height: "32px", width: "auto" }}
-        />
-        <span className="mt-1 text-xs text-[var(--color-muted)]">Payoneer</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <Image
-          src={`/banks/${encodeURIComponent("wise logo.png")}`}
-          alt="Wise"
-          width={120}
-          height={32}
-          className="object-contain opacity-80"
-          style={{ height: "32px", width: "auto" }}
-        />
-        <span className="mt-1 text-xs text-[var(--color-muted)]">Wise</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <Image
-          src={`/banks/${encodeURIComponent("zelle logo.png")}`}
-          alt="Zelle"
-          width={120}
-          height={32}
-          className="object-contain opacity-80"
-          style={{ height: "32px", width: "auto" }}
-        />
-        <span className="mt-1 text-xs text-[var(--color-muted)]">Zelle</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <Image
-          src={`/banks/${encodeURIComponent("ifast logo.jpg")}`}
-          alt="iFast"
-          width={120}
-          height={32}
-          className="object-contain opacity-80"
-          style={{ height: "32px", width: "auto" }}
-        />
-        <span className="mt-1 text-xs text-[var(--color-muted)]">iFast</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <Image
-          src="/banks/binancelogo.png"
-          alt="Binance"
-          width={120}
-          height={32}
-          className="object-contain opacity-80"
-          style={{ height: "32px", width: "auto" }}
-        />
-        <span className="mt-1 text-xs text-[var(--color-muted)]">Binance</span>
-      </div>
-    </div>
-  );
-}
+const trustedBusinesses = [
+  { name: "Legacy Inc Global", domain: "legacyincglobal.com" },
+  { name: "Prospera Enterprises", domain: "prosperaenterprises.com" },
+  { name: "Redmon Resources LLC", domain: "redmonresourcesllc.com" },
+] as const;
+
+const testimonials = [
+  {
+    quote:
+      "The project was delivered with a strong focus on efficiency, scalability, and ease of use. Alpha Solutions delivered outstanding results, and their support throughout the project was excellent.",
+    name: "Jacquries Williams",
+    title: "Owner, Legacy Inc Global",
+    location: "Dallas, Texas",
+    tag: "AI Automation Project",
+  },
+  {
+    quote:
+      "Alpha Solutions designed and developed a modern, high-performance corporate website that established a strong digital presence and improved our brand credibility immediately.",
+    name: "Hamza",
+    title: "Owner, Prospera Enterprises",
+    location: "United States",
+    tag: "Web Development + Branding",
+  },
+] as const;
 
 /** Pill badges on “Most popular services” cards. */
 const pillarAccent: Record<
@@ -243,7 +205,6 @@ export default function HomePageClient({
   featuredProjects?: HomeFeaturedProject[];
 }) {
   const heroRef = useRef<HTMLElement | null>(null);
-  const clutchContainerRef = useRef<HTMLDivElement | null>(null);
   const [videoMounted, setVideoMounted] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
@@ -304,41 +265,6 @@ export default function HomePageClient({
 
     return () => {
       observer?.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const bootClutch = () => {
-      const clutch = (window as Window & { CLUTCHCO?: { init?: () => void; Init?: () => void } }).CLUTCHCO;
-      clutch?.init?.();
-      clutch?.Init?.();
-    };
-
-    const script = document.createElement("script");
-    script.id = "clutch-widget-script";
-    script.src = "https://widget.clutch.co/static/js/widget.js";
-    script.async = true;
-    script.type = "text/javascript";
-    script.onload = () => {
-      bootClutch();
-      window.setTimeout(bootClutch, 250);
-      window.setTimeout(bootClutch, 800);
-    };
-    document.body.appendChild(script);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          bootClutch();
-        }
-      },
-      { rootMargin: "120px" }
-    );
-    if (clutchContainerRef.current) observer.observe(clutchContainerRef.current);
-
-    return () => {
-      observer.disconnect();
-      document.body.removeChild(script);
     };
   }, []);
 
@@ -403,6 +329,11 @@ export default function HomePageClient({
               Custom software, AI automation, and business setup — from Utah to
               the world.
             </p>
+            <p className="mx-auto mt-3 max-w-3xl text-xs font-medium uppercase tracking-wide text-[var(--color-muted)] sm:text-sm">
+              US-managed operations in West Jordan, Utah with a dedicated
+              development center in Gujranwala, Pakistan. You get US
+              accountability at agency-competitive rates.
+            </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 href="/contact"
@@ -438,7 +369,7 @@ export default function HomePageClient({
             {[
               ["50+", "Projects Delivered"],
               ["5.0", "Clutch Rating"],
-              ["3", "Countries Served"],
+              ["3", "Continents Served"],
             ].map(([a, b], idx) => (
               <Fragment key={b}>
                 {idx > 0 ? (
@@ -647,6 +578,44 @@ export default function HomePageClient({
         </div>
       </section>
 
+      {/* —— Why Choose Alpha Solutions —— */}
+      <section className="border-b border-[var(--color-border)] px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <FadeSection className="mb-12 text-center">
+            <h2
+              className="text-3xl font-bold tracking-tight text-[var(--color-text)] sm:text-4xl"
+              style={{ fontFamily: "var(--font-display), sans-serif" }}
+            >
+              Why Choose Alpha Solutions
+            </h2>
+            <p className="mx-auto mt-4 max-w-3xl text-[var(--color-muted)]">
+              A founder-led, SEO-focused delivery model for businesses that need
+              measurable digital outcomes and accountable execution.
+            </p>
+          </FadeSection>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {whyChooseCards.map((card, index) => (
+              <FadeSection key={card.title} delay={index * 0.06}>
+                <article className="h-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/35 p-6">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-accent)]/35 bg-[var(--color-accent-dim)] text-xs font-bold tracking-wide text-[var(--color-accent)]">
+                    {card.icon}
+                  </div>
+                  <h3
+                    className="mt-4 text-lg font-bold text-[var(--color-text)]"
+                    style={{ fontFamily: "var(--font-display), sans-serif" }}
+                  >
+                    {card.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
+                    {card.text}
+                  </p>
+                </article>
+              </FadeSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* —— Recent projects —— */}
       <section className="border-b border-[var(--color-border)] px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
@@ -751,65 +720,91 @@ export default function HomePageClient({
         </div>
       </section>
 
-      {/* —— Social proof —— */}
+      {/* —— Trusted by and testimonials —— */}
       <section className="border-b border-[var(--color-border)] px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <FadeSection className="mb-12 text-center">
+          <FadeSection className="text-center">
             <h2
               className="text-3xl font-bold tracking-tight text-[var(--color-text)] sm:text-4xl"
               style={{ fontFamily: "var(--font-display), sans-serif" }}
             >
-              Trusted by businesses across the US
+              Trusted by businesses across 3 continents
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-[var(--color-muted)]">
-              Independent reviews and long-term engagements with operators who
-              demand reliability.
+              SEO-focused digital execution for growth-stage teams in multiple
+              regions.
             </p>
           </FadeSection>
-          <FadeSection className="mt-12">
-            <div
-              ref={clutchContainerRef}
-              className="rounded-xl border border-[var(--color-border)] bg-white p-3"
-            >
-              <div
-                className="clutch-widget"
-                data-url="https://widget.clutch.co"
-                data-widget-type="4"
-                data-height="auto"
-                data-nofollow="false"
-                data-expandifr="true"
-                data-reviews="429972,414798,414420"
-                data-clutchcompany-id="2572379"
-                style={{ minHeight: 320 }}
-              />
+          <FadeSection className="mt-10">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {trustedBusinesses.map((business) => (
+                <article
+                  key={business.name}
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25 p-6 text-center"
+                >
+                  <h3 className="text-base font-semibold text-[var(--color-text)]">
+                    {business.name}
+                  </h3>
+                  <p className="mt-2 text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                    {business.domain}
+                  </p>
+                </article>
+              ))}
             </div>
-            <div className="mt-4 text-center">
+          </FadeSection>
+
+          <FadeSection className="mt-14 text-center">
+            <h3
+              className="text-2xl font-bold tracking-tight text-[var(--color-text)] sm:text-3xl"
+              style={{ fontFamily: "var(--font-display), sans-serif" }}
+            >
+              What Our Clients Say
+            </h3>
+            <p className="mx-auto mt-3 max-w-2xl text-[var(--color-muted)]">
+              Verified Clutch testimonials from web development and AI
+              automation engagements.
+            </p>
+            <div className="mt-10 grid gap-5 lg:grid-cols-2">
+              {testimonials.map((item) => (
+                <article
+                  key={item.name}
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25 p-6 text-left"
+                >
+                  <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+                    "{item.quote}"
+                  </p>
+                  <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                    {item.tag}
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-[var(--color-muted)]">
+                    {item.title} · {item.location}
+                  </p>
+                  <p className="mt-2 text-xs font-semibold text-[var(--color-accent)]">
+                    5/5 stars
+                  </p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-6">
               <a
-                href="https://clutch.co/profile/alpha-solutions-services"
+                href="https://clutch.co/profile/alpha-solutions-services#reviews"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex text-xs font-semibold text-[var(--color-accent)] hover:underline"
+                className="inline-flex text-sm font-semibold text-[var(--color-accent)] hover:underline"
               >
-                View Alpha Solutions on Clutch
+                View all reviews on Clutch →
               </a>
             </div>
           </FadeSection>
-          <FadeSection className="mt-14">
-            <p className="mb-6 text-center text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-              Payment methods we accept
+
+          <FadeSection className="mt-8">
+            <p className="text-center text-sm text-[var(--color-muted)]">
+              Payments accepted via Stripe, Payoneer, Wise & more - in USD, PKR,
+              EUR, and GBP.
             </p>
-            <PaymentMethodsStrip className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25 px-4 py-8" />
-            <p className="mt-4 text-center text-xs text-[var(--color-muted)]">
-              USD, PKR, EUR, GBP accepted
-            </p>
-            <div className="mt-6 text-center">
-              <Link
-                href="/contact"
-                className="inline-flex items-center justify-center rounded-lg bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[#05080F] transition-opacity hover:opacity-90"
-              >
-                Request a quote
-              </Link>
-            </div>
           </FadeSection>
         </div>
       </section>

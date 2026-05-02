@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { SERVICES } from "@/data/services";
+import { PaymentMethodsSection } from "@/components/shared/PaymentMethodsSection";
 
 const schema = z.object({
   name: z.string().min(2, "Name required"),
@@ -311,6 +312,10 @@ export default function ContactPage() {
             </div>
           </div>
         </div>
+
+        <section style={{ marginTop: 56 }}>
+          <PaymentMethodsSection />
+        </section>
 
         <section style={{ marginTop: 56 }}>
           <h2 style={{ fontSize: 24, marginBottom: 14 }}>Find us on map</h2>

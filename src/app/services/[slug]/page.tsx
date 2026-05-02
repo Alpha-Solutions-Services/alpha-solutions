@@ -3,6 +3,97 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+const SERVICE_FAQS: Record<string, { q: string; a: string }[]> = {
+  "custom-web-development": [
+    {
+      q: "How long does a custom website take?",
+      a: "Most websites are delivered in 2-4 weeks depending on scope. We share a milestone timeline on day one so you always know what is next.",
+    },
+    {
+      q: "Do you work with clients outside the US?",
+      a: "Yes. We serve clients in the US, UK, Pakistan, and globally. Payments accepted in USD, PKR, EUR, and GBP.",
+    },
+    {
+      q: "What technologies do you use?",
+      a: "React.js, Next.js, Node.js, Tailwind CSS, and headless CMS platforms like Sanity.io.",
+    },
+    {
+      q: "Can I edit the site myself after launch?",
+      a: "Yes. We integrate a CMS so you can update content without touching any code.",
+    },
+    {
+      q: "What is included in the $349 starting price?",
+      a: "A fully designed, mobile-responsive website with up to 5 pages, contact form, and basic SEO setup. Additional features are scoped separately.",
+    },
+  ],
+  "ai-chatbot": [
+    {
+      q: "What platforms can the chatbot be added to?",
+      a: "We deploy chatbots on your website, WhatsApp, Instagram DMs, Facebook Messenger, and more.",
+    },
+    {
+      q: "Does the chatbot handle real conversations or just FAQs?",
+      a: "Both. It handles FAQs automatically and can qualify leads, book calls, and escalate complex queries to a human agent.",
+    },
+    {
+      q: "What does $599 setup include?",
+      a: "Full chatbot design, training on your business data, platform integration, and testing. The $299/mo covers hosting, maintenance, and updates.",
+    },
+    {
+      q: "How long does setup take?",
+      a: "Typically 5-10 business days from kickoff to go-live.",
+    },
+    {
+      q: "Can it integrate with my CRM?",
+      a: "Yes. We connect it to your existing CRM, email system, or Google Sheets for lead logging.",
+    },
+  ],
+  "mobile-app-development": [
+    {
+      q: "Do you build iOS and Android both?",
+      a: "Yes. We build cross-platform apps using React Native that run on both iOS and Android from a single codebase.",
+    },
+    {
+      q: "What is included in the $1,499 starting price?",
+      a: "A core mobile app with up to 5 screens, user authentication, and basic backend. Complex features are quoted separately.",
+    },
+    {
+      q: "How long does a mobile app take to build?",
+      a: "Simple apps take 4-6 weeks. Feature-rich apps with backend integrations typically take 8-12 weeks.",
+    },
+    {
+      q: "Will you submit the app to the App Store and Google Play?",
+      a: "Yes. We handle the full submission process for both stores.",
+    },
+    {
+      q: "Do you provide support after launch?",
+      a: "Yes. We offer optional monthly maintenance and update packages post-launch.",
+    },
+  ],
+  "llc-registration": [
+    {
+      q: "Can you register an LLC for a non-US resident?",
+      a: "Yes. We specialize in helping international founders - especially from Pakistan, UAE, and the UK - register US LLCs without visiting the US.",
+    },
+    {
+      q: "What state do you register in?",
+      a: "We register in Wyoming by default (lowest fees, most privacy-friendly). Utah or Delaware available on request.",
+    },
+    {
+      q: "What is included in the $299 flat fee?",
+      a: "LLC name check, Articles of Organization filing, registered agent (1 year), EIN application, and digital document delivery.",
+    },
+    {
+      q: "How long does registration take?",
+      a: "Typically 5-10 business days for standard filing. Expedited options are available.",
+    },
+    {
+      q: "Do I need a US address or bank account?",
+      a: "No US address needed - we provide a registered agent address. We also guide you on opening a US business bank account remotely.",
+    },
+  ],
+};
+
 export async function generateStaticParams() {
   return SERVICES.map((s) => ({ slug: s.slug }));
 }
@@ -71,6 +162,7 @@ export default function ServicePage({
       pillars: [3, 5],
     },
   ].filter((p) => p.pillars.includes(service.pillar));
+  const faqs = SERVICE_FAQS[service.slug] ?? [];
 
   const schema = {
     "@context": "https://schema.org",
@@ -337,6 +429,36 @@ export default function ServicePage({
             ))}
           </div>
         </section>
+
+        {faqs.length > 0 ? (
+          <section style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px 60px" }}>
+            <h2 style={{ fontSize: 22, marginBottom: 12 }}>
+              Frequently asked questions about {service.name}
+            </h2>
+            <p style={{ color: "var(--color-muted)", marginBottom: 16 }}>
+              SEO-friendly service details for timeline, scope, technologies, and
+              international delivery expectations.
+            </p>
+            <div style={{ display: "grid", gap: 12 }}>
+              {faqs.map((item) => (
+                <details
+                  key={item.q}
+                  style={{
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 12,
+                    background: "var(--color-surface)",
+                    padding: "14px 16px",
+                  }}
+                >
+                  <summary style={{ cursor: "pointer", fontWeight: 600 }}>{item.q}</summary>
+                  <p style={{ color: "var(--color-muted)", marginTop: 8, lineHeight: 1.6 }}>
+                    {item.a}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section
           style={{

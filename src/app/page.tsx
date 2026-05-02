@@ -32,13 +32,13 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     type: "website",
     locale: "en_US",
-    images: [{ url: absoluteUrl("/opengraph-image") }],
+    images: [{ url: absoluteUrl("/alpha-logo.png") }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE_NAME} — ${title}`,
     description,
-    images: [absoluteUrl("/twitter-image")],
+    images: [absoluteUrl("/alpha-logo.png")],
   },
   robots: { index: true, follow: true },
   authors: [{ name: COMPANY.name, url: absoluteUrl("/about") }],
@@ -75,5 +75,50 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const featuredRaw = await getFeaturedProjects<FeaturedSanityDoc>();
   const featuredProjects = mapFeaturedProjectsForHome(featuredRaw);
 
-  return <HomePageClient featuredProjects={featuredProjects} />;
+  const homeSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Alpha Solutions Services LLC",
+    url: "https://www.alphasolutions.software",
+    logo: "https://www.alphasolutions.software/alpha-logo.png",
+    foundingDate: "2025",
+    founder: {
+      "@type": "Person",
+      name: "Muhammad Mikran Sandhu",
+    },
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "7533 S Center View Ct Ste R",
+      addressLocality: "West Jordan",
+      addressRegion: "UT",
+      postalCode: "84084",
+      addressCountry: "US",
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+923494206922",
+      contactType: "customer service",
+      availableLanguage: ["English", "Urdu"],
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "5.0",
+      reviewCount: "3",
+      bestRating: "5",
+    },
+    sameAs: [
+      "https://clutch.co/profile/alpha-solutions-services",
+      "https://www.linkedin.com/company/alpha-solutions-by-alpha-group/",
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchema) }}
+      />
+      <HomePageClient featuredProjects={featuredProjects} />
+    </>
+  );
 }

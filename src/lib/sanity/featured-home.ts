@@ -33,7 +33,7 @@ export function mapFeaturedProjectsForHome(
         p.projectUrl && p.projectUrl !== "#"
           ? p.projectUrl
           : slug
-            ? `/projects#${slug}`
+            ? `/projects/${slug}`
             : "/projects";
       const desc = (p.description ?? "").trim();
       return {

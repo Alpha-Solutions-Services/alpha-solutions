@@ -82,8 +82,9 @@ export default function AboutPage() {
             {[
               ["US LLC", "West Jordan, Utah"],
               ["Dev Office", "Gujranwala, Pakistan"],
-              ["150+", "Projects delivered"],
+              ["50+", "Projects delivered"],
               ["5.0", "Clutch rating"],
+              ["3", "Continents served"],
             ].map(([val, label]) => (
               <div key={label}>
                 <div

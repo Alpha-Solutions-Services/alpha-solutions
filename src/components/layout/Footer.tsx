@@ -4,24 +4,6 @@ import Script from "next/script";
 import type { SVGProps } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
 
-function StripeLogo({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      role="img"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="Stripe"
-    >
-      <title>Stripe</title>
-      <path
-        fill="#635BFF"
-        d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.81 2.525-6.385 0-4.168-2.451-5.758-6.591-7.305z"
-      />
-    </svg>
-  );
-}
-
 const companyLinks = [
   { name: "About Us", href: "/about" },
   { name: "Services", href: "/services" },
@@ -144,7 +126,7 @@ export function Footer() {
       />
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {/* Brand + tagline + Clutch + payments + social */}
+          {/* Brand + tagline + Clutch + social */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Image
@@ -183,92 +165,6 @@ export function Footer() {
             >
               View Alpha Solutions on Clutch
             </a>
-            <div className="mt-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/50 p-4">
-              <h4 className="mb-3 text-center text-sm font-semibold text-[var(--color-text)]">
-                Flexible Payment Options
-              </h4>
-              <p className="mb-3 text-center text-xs text-[var(--color-muted)]">
-                We accept international payments in multiple currencies
-              </p>
-              <div className="flex flex-wrap justify-center gap-6">
-                <div className="flex flex-col items-center">
-                  <StripeLogo className="h-8 w-8 opacity-90 transition-opacity hover:opacity-100" />
-                  <span className="mt-1 text-xs text-[var(--color-muted)]">
-                    Stripe
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <Image
-                    src={`/banks/${encodeURIComponent("payoneer logo.png")}`}
-                    alt="Payoneer"
-                    width={120}
-                    height={32}
-                    className="object-contain opacity-80 transition-opacity hover:opacity-100"
-                    style={{ height: "32px", width: "auto" }}
-                  />
-                  <span className="mt-1 text-xs text-[var(--color-muted)]">
-                    Payoneer
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <Image
-                    src={`/banks/${encodeURIComponent("wise logo.png")}`}
-                    alt="Wise"
-                    width={120}
-                    height={32}
-                    className="object-contain opacity-80 transition-opacity hover:opacity-100"
-                    style={{ height: "32px", width: "auto" }}
-                  />
-                  <span className="mt-1 text-xs text-[var(--color-muted)]">
-                    Wise
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <Image
-                    src={`/banks/${encodeURIComponent("zelle logo.png")}`}
-                    alt="Zelle"
-                    width={120}
-                    height={32}
-                    className="object-contain opacity-80 transition-opacity hover:opacity-100"
-                    style={{ height: "32px", width: "auto" }}
-                  />
-                  <span className="mt-1 text-xs text-[var(--color-muted)]">
-                    Zelle
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <Image
-                    src={`/banks/${encodeURIComponent("ifast logo.jpg")}`}
-                    alt="iFast"
-                    width={120}
-                    height={32}
-                    className="object-contain opacity-80 transition-opacity hover:opacity-100"
-                    style={{ height: "32px", width: "auto" }}
-                  />
-                  <span className="mt-1 text-xs text-[var(--color-muted)]">
-                    iFast
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <Image
-                    src="/banks/binancelogo.png"
-                    alt="Binance"
-                    width={120}
-                    height={32}
-                    className="object-contain opacity-80 transition-opacity hover:opacity-100"
-                    style={{ height: "32px", width: "auto" }}
-                  />
-                  <span className="mt-1 text-xs text-[var(--color-muted)]">
-                    Binance
-                  </span>
-                </div>
-              </div>
-              <div className="mt-3 text-center">
-                <p className="text-xs text-[var(--color-muted)]">
-                  USD, PKR, EUR, GBP accepted
-                </p>
-              </div>
-            </div>
             <div className="flex flex-wrap gap-2 pt-2">
               {socialLinks.map(({ name, href, Icon }) => (
                 <a
