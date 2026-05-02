@@ -30,6 +30,7 @@ export default function ContactPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle"
   );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -38,14 +39,29 @@ export default function ContactPage() {
 
   const onSubmit = async (data: FormData) => {
     setStatus("loading");
+    setErrorMessage(null);
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      setStatus(res.ok ? "success" : "error");
+      if (res.ok) {
+        setStatus("success");
+        return;
+      }
+
+      let msg = "Something went wrong. WhatsApp us instead.";
+      try {
+        const payload = (await res.json()) as { error?: string };
+        if (payload?.error) msg = payload.error;
+      } catch {
+        // ignore
+      }
+      setErrorMessage(msg);
+      setStatus("error");
     } catch {
+      setErrorMessage("Network error. Please try again, or WhatsApp us instead.");
       setStatus("error");
     }
   };
@@ -218,7 +234,7 @@ export default function ContactPage() {
                 </button>
                 {status === "error" && (
                   <p style={{ color: "#FF6B6B", fontSize: 14 }}>
-                    Something went wrong. WhatsApp us instead.
+                    {errorMessage ?? "Something went wrong. WhatsApp us instead."}
                   </p>
                 )}
               </form>
