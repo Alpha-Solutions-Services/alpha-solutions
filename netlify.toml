@@ -1,0 +1,10 @@
+# Deploy this site from the `alpha-solutions` folder in Netlify
+# (Site settings → Build & deploy → Base directory: `alpha-solutions`).
+# Do not use the repo-root `netlify.toml` meant for the legacy Vite SPA
+# (`publish = "dist"` + `/* → /index.html`) — that breaks Next.js routes.
+
+[build]
+  command = "npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

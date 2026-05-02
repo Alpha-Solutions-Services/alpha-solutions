@@ -1,0 +1,9 @@
+/** True when Supabase URL + anon key look like real values (portal login). */
+export function isPortalAuthConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !key) return false;
+  if (!url.startsWith("http")) return false;
+  if (key === "your_anon_key" || key.length < 20) return false;
+  return true;
+}
