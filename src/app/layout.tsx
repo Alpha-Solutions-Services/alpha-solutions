@@ -63,7 +63,8 @@ export const metadata: Metadata = {
     images: [absoluteUrl(DEFAULT_OG_IMAGE_PATH)],
   },
   icons: {
-    icon: [{ url: "/alpha-logo.png", type: "image/png" }],
+    icon: [{ url: "/alpha-logo.png", sizes: "any", type: "image/png" }],
+    shortcut: "/alpha-logo.png",
     apple: [{ url: "/alpha-logo.png", type: "image/png" }],
   },
   verification: {

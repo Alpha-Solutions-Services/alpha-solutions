@@ -16,6 +16,13 @@ const nextConfig = {
       { protocol: "https", hostname: "cdn.prod.website-files.com" },
     ],
   },
+  async rewrites() {
+    return [
+      // Browsers often request /favicon.ico by default; map to site logo PNG in public/.
+      { source: "/favicon.ico", destination: "/alpha-logo.png" },
+    ];
+  },
+
   async redirects() {
     return [
       {
