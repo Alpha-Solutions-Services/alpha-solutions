@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const revalidate = 3600;
+
 type SanityProject = {
   _id: string;
   title?: string | null;
@@ -157,6 +159,7 @@ export default async function ProjectsPage() {
                         src={image}
                         alt={title}
                         fill
+                        loading="lazy"
                         sizes="(max-width: 1024px) 100vw, 1200px"
                         className="object-cover"
                       />

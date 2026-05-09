@@ -6,10 +6,10 @@ const WHATSAPP = "https://wa.me/923494206922";
 
 export function generateMetadata(): Metadata {
   const title =
-    "Alpha Freight Network | Trucking Dispatch, FMCSA Compliance & Training";
+    "Alpha Freight Network | Dispatch, Compliance & Training";
   const description =
-    "US trucking back-office: dispatching (8%/6%), driver sourcing, MC lease-on, carrier sales, DAT management, and FMCSA compliance. Alpha Freight Network by Alpha Solutions Services LLC — West Jordan, Utah.";
-  const url = "https://alphasolutions.software/freight";
+    "US trucking back-office services: dispatching, sourcing, MC lease-on, carrier sales, DAT management, and FMCSA compliance from Alpha Freight Network.";
+  const url = "https://www.alphasolutions.software/freight";
   return {
     title,
     description,

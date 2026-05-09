@@ -1,10 +1,23 @@
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { getPortalUser } from "@/lib/portal/auth";
 import { isAdminUser } from "@/lib/admin-auth";
-import { PortalLoginForm } from "@/components/portal/PortalLoginForm";
 import { isPortalAuthConfigured } from "@/lib/supabase/env";
+
+const PortalLoginForm = dynamic(
+  () =>
+    import("@/components/portal/PortalLoginForm").then(
+      (m) => m.PortalLoginForm
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mx-auto h-48 max-w-md animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/20" />
+    ),
+  }
+);
 
 export default async function PortalLoginPage() {
   const user = await getPortalUser();

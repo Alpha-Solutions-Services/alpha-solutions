@@ -275,6 +275,14 @@ export default function HomePageClient({
         ref={heroRef}
         className="relative overflow-hidden border-b border-[var(--color-border)] px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-20 lg:px-8"
       >
+        <Image
+          src="/hero.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="pointer-events-none object-cover opacity-20"
+        />
         {videoMounted ? (
           <video
             className={clsx(

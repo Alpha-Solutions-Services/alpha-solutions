@@ -1,9 +1,17 @@
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  compress: true,
   images: {
+    formats: ["image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "cdn.sanity.io" },
       { protocol: "https", hostname: "res.cloudinary.com" },
@@ -16,25 +24,24 @@ const nextConfig = {
       { protocol: "https", hostname: "cdn.prod.website-files.com" },
     ],
   },
-  async rewrites() {
-    return [
-      // Browsers often request /favicon.ico by default; map to site logo PNG in public/.
-      { source: "/favicon.ico", destination: "/alpha-logo.png" },
-    ];
-  },
-
   async redirects() {
     return [
       {
         source: "/:path*",
+        has: [{ type: "host", value: "alphasolutions.software" }],
+        destination: "https://www.alphasolutions.software/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
         has: [{ type: "host", value: "alphasolutions.online" }],
-        destination: "https://alphasolutions.software/:path*",
+        destination: "https://www.alphasolutions.software/:path*",
         permanent: true,
       },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.alphasolutions.online" }],
-        destination: "https://alphasolutions.software/:path*",
+        destination: "https://www.alphasolutions.software/:path*",
         permanent: true,
       },
       {
@@ -52,8 +59,18 @@ const nextConfig = {
         destination: "/services/mobile-app-development",
         permanent: true,
       },
+      {
+        source: "/portal",
+        destination: "/portal/login",
+        permanent: true,
+      },
+      {
+        source: "/services/freight",
+        destination: "/freight",
+        permanent: true,
+      },
     ];
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

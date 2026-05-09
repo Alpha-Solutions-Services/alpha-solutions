@@ -246,7 +246,7 @@ export function Navbar() {
 
         <div className="ml-auto flex shrink-0 items-center justify-end gap-2 sm:gap-3">
           <Link
-            href="/portal"
+            href="/portal/login"
             className={clsx(
               "hidden shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-opacity xl:gap-2 xl:px-4 xl:text-sm xl:inline-flex",
               "bg-[var(--color-accent)] text-[#05080F] hover:opacity-90",
@@ -382,7 +382,7 @@ export function Navbar() {
               </NavLink>
 
               <Link
-                href="/portal"
+                href="/portal/login"
                 onClick={() => setMobileOpen(false)}
                 className={clsx(
                   "mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold",

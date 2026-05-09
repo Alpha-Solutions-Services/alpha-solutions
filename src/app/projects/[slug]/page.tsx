@@ -96,6 +96,7 @@ export default async function CaseStudyPage({ params }: { params: Params }) {
                 src={image}
                 alt={title}
                 fill
+                loading="lazy"
                 sizes="(max-width: 1024px) 100vw, 1200px"
                 className="object-cover"
               />

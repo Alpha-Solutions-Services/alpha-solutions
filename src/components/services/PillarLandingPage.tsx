@@ -8,7 +8,7 @@ import { PILLARS, SERVICES } from "@/data/services";
 import { PillarFAQ, PillarServiceGrid } from "./PillarLandingClient";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://alphasolutions.software";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.alphasolutions.software";
 
 export function PillarLandingPage({ pillarId }: { pillarId: PillarPageId }) {
   const copy = PILLAR_LANDING_COPY[pillarId];

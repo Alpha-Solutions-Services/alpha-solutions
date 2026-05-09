@@ -58,7 +58,7 @@ export async function generateMetadata({
 
   const title = post.title;
   const description =
-    post.excerpt?.trim().slice(0, 160) ||
+    post.excerpt?.trim().slice(0, 155) ||
     `Read "${title}" on the ${SITE_NAME} blog.`;
   const canonical = `${SITE_URL}/blog/${params.slug}`;
   const ogFromImage = urlForImage(post.image, 1200);

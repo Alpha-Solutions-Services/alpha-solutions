@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import clsx from "clsx";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   BarChart3,
   Inbox,
@@ -63,6 +64,14 @@ export function AdminDashboardClient() {
   const [threadMessages, setThreadMessages] = useState<DmMessage[]>([]);
   const [reply, setReply] = useState("");
   const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [tableWrap, setTableWrap] = useState<HTMLDivElement | null>(null);
+  const rowVirtualizer = useVirtualizer({
+    count: inquiries.length,
+    getScrollElement: () => tableWrap,
+    estimateSize: () => 120,
+    overscan: 8,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -209,7 +218,10 @@ export function AdminDashboardClient() {
       ) : null}
 
       {tab === "inquiries" ? (
-        <div className="overflow-x-auto rounded-xl border border-[var(--color-border)]">
+        <div
+          ref={setTableWrap}
+          className="max-h-[70vh] overflow-auto rounded-xl border border-[var(--color-border)]"
+        >
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/40">
               <tr>
@@ -230,11 +242,15 @@ export function AdminDashboardClient() {
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {inquiries.map((row) => (
+            <tbody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+              {virtualRows.map((vRow) => {
+                const row = inquiries[vRow.index];
+                if (!row) return null;
+                return (
                 <tr
                   key={row.id}
-                  className="border-b border-[var(--color-border)]/60 align-top"
+                  className="absolute left-0 top-0 w-full border-b border-[var(--color-border)]/60 align-top"
+                  style={{ transform: `translateY(${vRow.start}px)` }}
                 >
                   <td className="p-3 text-[var(--color-muted)]">
                     {new Date(row.created_at).toLocaleString()}
@@ -279,7 +295,8 @@ export function AdminDashboardClient() {
                     </select>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {inquiries.length === 0 ? (

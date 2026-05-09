@@ -63,8 +63,8 @@ export const metadata: Metadata = {
     images: [absoluteUrl(DEFAULT_OG_IMAGE_PATH)],
   },
   icons: {
-    icon: [{ url: "/alpha-logo.png", sizes: "any", type: "image/png" }],
-    shortcut: "/alpha-logo.png",
+    icon: [{ url: "/favicon.ico", sizes: "any", type: "image/x-icon" }],
+    shortcut: "/favicon.ico",
     apple: [{ url: "/alpha-logo.png", type: "image/png" }],
   },
   verification: {
@@ -79,8 +79,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sora.variable} ${dmSans.variable}`}>
+      <head>
+        <link rel="preload" as="image" href="/hero.webp" />
+        <link rel="preconnect" href="https://lx58x5y4.supabase.co" crossOrigin="" />
+      </head>
       {gtmId ? (
-        <Script id="gtm-init" strategy="afterInteractive">
+        <Script id="gtm-init" strategy="lazyOnload">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -103,9 +107,9 @@ export default function RootLayout({
           <>
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="afterInteractive"
+              strategy="lazyOnload"
             />
-            <Script id="ga4-init" strategy="afterInteractive">
+            <Script id="ga4-init" strategy="lazyOnload">
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
@@ -117,7 +121,7 @@ export default function RootLayout({
         ) : null}
         <Script
           src="https://cdn.jotfor.ms/agent/embedjs/0199af64e03b79129c515648cde5ca8cd8a0/embed.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
       </body>
     </html>

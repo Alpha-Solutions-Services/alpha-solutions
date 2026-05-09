@@ -7,10 +7,10 @@ const WHATSAPP = "https://wa.me/923494206922";
 
 export function generateMetadata(): Metadata {
   const title =
-    "Truck Dispatcher Training Course — $120 Online | Alpha Freight Network";
+    "Truck Dispatcher Training Course | Alpha Freight Network";
   const description =
-    "Online freight dispatch training for $120 one-time. Load boards, negotiation basics, carrier workflows, and compliance awareness for US trucking. Enroll via WhatsApp — Alpha Freight Network.";
-  const url = "https://alphasolutions.software/freight/dispatch-training";
+    "Online freight dispatch training for $120. Learn load boards, negotiation basics, and carrier workflows. Enroll via WhatsApp with Alpha Freight Network.";
+  const url = "https://www.alphasolutions.software/freight/dispatch-training";
   return {
     title,
     description,

@@ -1,4 +1,5 @@
 import { SERVICES, PILLARS } from "@/data/services";
+import { SITE_URL } from "@/data/site";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -133,6 +134,8 @@ export default function ServicePage({
   if (!service) notFound();
 
   const pillar = PILLARS[service.pillar];
+  const pillarHref =
+    service.pillar === 5 ? "/freight" : `/services/${pillar.slug}`;
   const related = SERVICES.filter(
     (s) => s.pillar === service.pillar && s.slug !== service.slug
   ).slice(0, 3);
@@ -172,7 +175,7 @@ export default function ServicePage({
     provider: {
       "@type": "Organization",
       name: "Alpha Solutions Services LLC",
-      url: "https://alphasolutions.software",
+      url: SITE_URL,
     },
     offers: {
       "@type": "Offer",
@@ -204,10 +207,7 @@ export default function ServicePage({
               Services
             </Link>
             {" / "}
-            <Link
-              href={`/services/${pillar.slug}`}
-              style={{ color: "var(--color-muted)" }}
-            >
+            <Link href={pillarHref} style={{ color: "var(--color-muted)" }}>
               {pillar.name}
             </Link>
             {" / "}

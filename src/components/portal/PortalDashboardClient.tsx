@@ -1,13 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { BarChart3, FileText, FolderKanban, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 import type { PortalFile, PortalProject } from "@/lib/sanity/portal-data";
-import { DashboardStats } from "./DashboardStats";
 import { ProjectCard } from "./ProjectCard";
 import { FileLibrary } from "./FileLibrary";
-import { DirectMessageThread } from "./DirectMessageThread";
+
+const DashboardStats = dynamic(
+  () => import("./DashboardStats").then((m) => m.DashboardStats),
+  { ssr: false }
+);
+const DirectMessageThread = dynamic(
+  () => import("./DirectMessageThread").then((m) => m.DirectMessageThread),
+  { ssr: false }
+);
 
 const WHATSAPP_DIGITS = "923494206922";
 

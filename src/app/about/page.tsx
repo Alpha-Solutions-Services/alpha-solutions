@@ -4,20 +4,20 @@ import YouTubeEmbed from "@/components/shared/YouTubeEmbed";
 import { absoluteUrl, SITE_NAME } from "@/data/site";
 
 export const metadata: Metadata = {
-  title: "About Us | Alpha Solutions Services LLC — Web Development Company",
+  title: "About Us | Alpha Solutions Services LLC",
   description:
     "Alpha Solutions is a US-registered software company based in West Jordan, Utah with a development office in Gujranwala, Pakistan.",
   openGraph: {
     title: `About Us | ${SITE_NAME}`,
     description:
       "Meet the team behind Alpha Solutions — full-stack development, SaaS, and AI from Utah and Pakistan.",
-    images: [{ url: "/Team/Founder.png", width: 800, height: 800 }],
+    images: [{ url: "/Team/Founder.webp", width: 800, height: 800 }],
     url: absoluteUrl("/about"),
   },
   twitter: {
     card: "summary_large_image",
     title: `About Us | ${SITE_NAME}`,
-    images: [absoluteUrl("/Team/Founder.png")],
+    images: [absoluteUrl("/Team/Founder.webp")],
   },
   alternates: { canonical: "/about" },
 };
@@ -27,7 +27,7 @@ export default function AboutPage() {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: "Alpha Solutions Services LLC",
-    url: "https://alphasolutions.software",
+    url: "https://www.alphasolutions.software",
     email: "info@alphasolutions.software",
     telephone: "+923494206922",
     address: [
@@ -150,7 +150,7 @@ export default function AboutPage() {
               }}
             >
               <Image
-                src="/Team/Founder.png"
+                src="/Team/Founder.webp"
                 alt="Muhammad Mikran Sandhu, Founder of Alpha Solutions Services LLC"
                 width={96}
                 height={96}

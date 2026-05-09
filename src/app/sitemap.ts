@@ -60,8 +60,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.75,
     },
-    { url: `${base}/portal`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
-    { url: `${base}/portal/login`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.25 },
   ];
 
   const serviceRoutes: MetadataRoute.Sitemap = SERVICES.map((s) => ({
@@ -81,5 +79,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.65,
     }));
 
-  return [...staticRoutes, ...serviceRoutes, ...blogRoutes];
+  // Keep sitemap URLs strictly indexable and non-redirecting.
+  const blocked = new Set([
+    `${base}/portal`,
+    `${base}/portal/login`,
+    `${base}/admin`,
+    `${base}/admin/login`,
+  ]);
+
+  const merged = [...staticRoutes, ...serviceRoutes, ...blogRoutes];
+  const unique = new Map<string, MetadataRoute.Sitemap[number]>();
+  for (const entry of merged) {
+    if (blocked.has(entry.url)) continue;
+    if (!unique.has(entry.url)) unique.set(entry.url, entry);
+  }
+  return Array.from(unique.values());
 }

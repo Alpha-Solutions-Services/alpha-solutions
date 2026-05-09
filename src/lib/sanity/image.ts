@@ -1,4 +1,7 @@
-import imageUrlBuilder, { type SanityImageSource } from "@sanity/image-url";
+import {
+  createImageUrlBuilder,
+  type SanityImageSource,
+} from "@sanity/image-url";
 import { createClient } from "./client";
 
 /**
@@ -11,7 +14,10 @@ export function urlForImage(
   if (!source) return null;
   const client = createClient();
   if (!client) return null;
-  let b = imageUrlBuilder(client).image(source).auto("format");
+  let b = createImageUrlBuilder(client)
+    .image(source)
+    .auto("format")
+    .fit("max");
   if (width) b = b.width(width);
   return b.url();
 }

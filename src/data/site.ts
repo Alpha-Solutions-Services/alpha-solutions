@@ -1,6 +1,6 @@
 /** Canonical site URL (no trailing slash). */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://alphasolutions.software";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.alphasolutions.software";
 
 export const SITE_NAME = "Alpha Solutions Services LLC";
 

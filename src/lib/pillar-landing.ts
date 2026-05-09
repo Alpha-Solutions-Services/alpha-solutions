@@ -4,7 +4,7 @@ import { PILLARS } from "@/data/services";
 export type PillarPageId = 1 | 2 | 3 | 4;
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://alphasolutions.software";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.alphasolutions.software";
 
 export type PillarFaq = { question: string; answer: string };
 
