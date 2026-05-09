@@ -15,7 +15,7 @@ const companyLinks = [
   { name: "Privacy Policy", href: "/privacy-policy" },
   { name: "Terms of Service", href: "/terms-of-service" },
   { name: "Sitemap", href: "/sitemap" },
-  { name: "Client Portal", href: "/portal" },
+  { name: "Client Portal", href: "/portal/login" },
 ] as const;
 
 /** Pillar landing pages (same as homepage “practice areas”). */
