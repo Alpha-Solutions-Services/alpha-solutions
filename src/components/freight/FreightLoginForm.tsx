@@ -12,6 +12,7 @@ import {
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSuperAdminEmail } from "@/lib/admin-allowlist";
+import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
 
 type Role = "dispatcher" | "carrier" | "driver" | "student";
 
@@ -153,6 +154,13 @@ export function FreightLoginForm() {
         .maybeSingle();
 
       const superAdmin = isSuperAdminEmail(emailSignedIn);
+      if (role === "dispatcher" && !superAdmin && !isAllowedDispatcherEmail(emailSignedIn)) {
+        await supabase.auth.signOut();
+        setError("Dispatcher access is restricted to authorized accounts.");
+        setLoading(false);
+        return;
+      }
+
       if (!profile?.role || profile.role !== role) {
         if (superAdmin && role !== "driver") {
           // Super admins can switch between freight roles (except driver invite-only).

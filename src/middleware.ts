@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isSuperAdminEmail } from "@/lib/admin-allowlist";
+import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
 
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -88,6 +90,15 @@ export async function middleware(request: NextRequest) {
           const n = request.nextUrl.clone();
           n.pathname = "/freight/login";
           n.searchParams.set("next", pathname);
+          return NextResponse.redirect(n);
+        }
+        if (
+          !isSuperAdminEmail(user?.email) &&
+          !isAllowedDispatcherEmail(user?.email)
+        ) {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          n.searchParams.set("error", "unauthorized_dispatcher");
           return NextResponse.redirect(n);
         }
       }

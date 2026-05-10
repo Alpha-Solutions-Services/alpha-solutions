@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAllowedAdminEmail, isSuperAdminEmail } from "@/lib/admin-allowlist";
+import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 
 /**
@@ -135,6 +136,12 @@ export async function GET(request: NextRequest) {
     if (!role) return NextResponse.redirect(`${origin}/freight/login?error=profile`);
 
     if (role === "dispatcher") {
+      if (
+        !isSuperAdminEmail(user.email) &&
+        !isAllowedDispatcherEmail(user.email)
+      ) {
+        return NextResponse.redirect(`${origin}/freight/login?error=unauthorized_dispatcher`);
+      }
       const dest = rawNext ? next : "/freight/dispatcher/dashboard";
       return NextResponse.redirect(`${origin}${dest}`);
     }
