@@ -1,97 +1,34 @@
 import type { MetadataRoute } from "next";
-import { SERVICES } from "@/data/services";
 import { SITE_URL } from "@/data/site";
-import { getAllPosts } from "@/lib/sanity/queries";
 
-const base = SITE_URL.replace(/\/$/, "");
-
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = await getAllPosts<{ slug?: { current?: string | null } | null }>();
-
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${base}/`, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
-    { url: `${base}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    { url: `${base}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
-    { url: `${base}/pricing`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.9 },
-    { url: `${base}/projects`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
-    { url: `${base}/apps`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
-    { url: `${base}/blog`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
-    {
-      url: `${base}/privacy-policy`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.4,
-    },
-    {
-      url: `${base}/terms-of-service`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.4,
-    },
-    { url: `${base}/services`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
-    {
-      url: `${base}/services/web-brand`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.85,
-    },
-    {
-      url: `${base}/services/business-setup`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.85,
-    },
-    {
-      url: `${base}/services/saas-products`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.85,
-    },
-    {
-      url: `${base}/services/ai-automation`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.85,
-    },
-    { url: `${base}/freight`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
-    {
-      url: `${base}/freight/dispatch-training`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.75,
-    },
+/** Public marketing + auth-entry routes only (dashboards omitted). */
+export default function sitemap(): MetadataRoute.Sitemap {
+  const base = SITE_URL.replace(/\/$/, "");
+  const now = new Date();
+  const paths = [
+    "/",
+    "/freight",
+    "/freight/login",
+    "/freight/student",
+    "/freight/student/enroll",
+    "/freight/carrier/register",
+    "/freight/driver/accept-invite",
+    "/services",
+    "/pricing",
+    "/about",
+    "/contact",
+    "/projects",
+    "/blog",
+    "/apps",
+    "/terms-of-service",
+    "/privacy-policy",
+    "/freight/dispatch-training",
   ];
 
-  const serviceRoutes: MetadataRoute.Sitemap = SERVICES.map((s) => ({
-    url: `${base}/services/${s.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "monthly" as const,
-    priority: 0.75,
+  return paths.map((path) => ({
+    url: `${base}${path}`,
+    lastModified: now,
+    changeFrequency: path === "/" ? ("weekly" as const) : ("monthly" as const),
+    priority: path === "/" ? 1 : path.startsWith("/freight") ? 0.85 : 0.7,
   }));
-
-  const blogRoutes: MetadataRoute.Sitemap = posts
-    .map((p) => p.slug?.current)
-    .filter((slug): slug is string => Boolean(slug))
-    .map((slug) => ({
-      url: `${base}/blog/${slug}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.65,
-    }));
-
-  // Keep sitemap URLs strictly indexable and non-redirecting.
-  const blocked = new Set([
-    `${base}/portal`,
-    `${base}/portal/login`,
-    `${base}/admin`,
-    `${base}/admin/login`,
-  ]);
-
-  const merged = [...staticRoutes, ...serviceRoutes, ...blogRoutes];
-  const unique = new Map<string, MetadataRoute.Sitemap[number]>();
-  for (const entry of merged) {
-    if (blocked.has(entry.url)) continue;
-    if (!unique.has(entry.url)) unique.set(entry.url, entry);
-  }
-  return Array.from(unique.values());
 }

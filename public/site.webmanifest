@@ -1,0 +1,8 @@
+{
+  "name": "Alpha Solutions",
+  "short_name": "Alpha Solutions",
+  "icons": [{ "src": "/icon.png", "sizes": "512x512", "type": "image/png" }],
+  "theme_color": "#0a0f1e",
+  "background_color": "#0a0f1e",
+  "display": "standalone"
+}

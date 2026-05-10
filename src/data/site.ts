@@ -1,7 +1,34 @@
-/** Canonical site URL (no trailing slash). */
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.alphasolutions.software";
+const DEFAULT_SITE_URL = "https://alphasolutions.software";
 
+/**
+ * `metadataBase` / `new URL()` require an absolute URL with a scheme.
+ * A common mistake is `NEXT_PUBLIC_SITE_URL=localhost:3001` which throws and can blank the entire app.
+ */
+export function normalizeCanonicalSiteUrl(raw: string | undefined): string {
+  const v = (raw ?? "").trim().replace(/\/+$/, "");
+  if (!v) return DEFAULT_SITE_URL;
+  try {
+    if (/^https?:\/\//i.test(v)) {
+      new URL(v);
+      return v;
+    }
+    const withScheme = `http://${v}`;
+    new URL(withScheme);
+    return withScheme;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
+/** Canonical site URL (no trailing slash). */
+export const SITE_URL = normalizeCanonicalSiteUrl(
+  process.env.NEXT_PUBLIC_SITE_URL,
+);
+
+/** Short brand name used in `<title>` template and OG where space is tight */
+export const SITE_BRAND_SHORT = "Alpha Solutions";
+
+/** Legal entity name — keep for footers / schema legalName where needed */
 export const SITE_NAME = "Alpha Solutions Services LLC";
 
 /** Primary Calendly booking (30 min). */
@@ -9,7 +36,7 @@ export const CALENDLY_BOOKING_URL =
   "https://calendly.com/alphaassistant-alpha/30min";
 
 /** Default Open Graph / Twitter image (absolute URL). */
-export const DEFAULT_OG_IMAGE_PATH = "/alpha-logo.png";
+export const DEFAULT_OG_IMAGE_PATH = "/og-image.png";
 
 export function absoluteUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;

@@ -8,7 +8,12 @@ import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { SiteThunderBackdrop } from "@/components/layout/SiteThunderBackdrop";
 import { SchemaMarkup } from "@/components/shared/SchemaMarkup";
-import { SITE_NAME, SITE_URL, absoluteUrl, DEFAULT_OG_IMAGE_PATH } from "@/data/site";
+import {
+  SITE_BRAND_SHORT,
+  SITE_URL,
+  absoluteUrl,
+  DEFAULT_OG_IMAGE_PATH,
+} from "@/data/site";
 import "./globals.css";
 
 const sora = Sora({
@@ -30,42 +35,52 @@ const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  manifest: "/site.webmanifest",
   title: {
-    default: SITE_NAME,
-    template: `%s | ${SITE_NAME}`,
+    default: `${SITE_BRAND_SHORT} — Web Design & Digital Services`,
+    template: `%s | ${SITE_BRAND_SHORT}`,
   },
   description:
-    "Alpha Solutions Services LLC delivers web, SaaS, business setup, and AI automation solutions to help your company grow.",
-  applicationName: "Alpha Solutions Services LLC",
+    "Alpha Solutions offers web design, development, digital strategy, and freight dispatching services.",
+  keywords: [
+    "web design",
+    "digital services",
+    "freight dispatching",
+    "load management",
+    "carrier services",
+  ],
+  authors: [{ name: SITE_BRAND_SHORT }],
+  creator: SITE_BRAND_SHORT,
+  applicationName: SITE_BRAND_SHORT,
   robots: { index: true, follow: true },
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "en_US",
     url: SITE_URL,
-    siteName: SITE_NAME,
-    title: SITE_NAME,
+    siteName: SITE_BRAND_SHORT,
+    title: `${SITE_BRAND_SHORT} — Web Design & Digital Services`,
     description:
-      "Web development, SaaS, business setup, and AI automation from Alpha Solutions Services LLC.",
+      "Web design, development, digital strategy, and freight management.",
     images: [
       {
         url: absoluteUrl(DEFAULT_OG_IMAGE_PATH),
         width: 1200,
         height: 630,
-        alt: SITE_NAME,
+        alt: SITE_BRAND_SHORT,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_NAME,
-    description:
-      "Web development, SaaS, business setup, and AI automation from Alpha Solutions Services LLC.",
+    title: SITE_BRAND_SHORT,
+    description: "Web design, development, and freight management.",
     images: [absoluteUrl(DEFAULT_OG_IMAGE_PATH)],
   },
   icons: {
-    icon: [{ url: "/favicon.ico", sizes: "any", type: "image/x-icon" }],
+    icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }],
     shortcut: "/favicon.ico",
-    apple: [{ url: "/alpha-logo.png", type: "image/png" }],
+    apple: [{ url: "/icon.png", type: "image/png" }],
   },
   verification: {
     google: "FghTckB5AES0bTVY4EoPL5FS1Fzi9yJI7yJFSG3hteI",
@@ -80,6 +95,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sora.variable} ${dmSans.variable}`}>
       <head>
+        <link rel="icon" href="/icon.png" type="image/png" sizes="512x512" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/icon.png" />
         <link rel="preload" as="image" href="/hero.webp" />
         <link rel="preconnect" href="https://lx58x5y4.supabase.co" crossOrigin="" />
       </head>

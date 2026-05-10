@@ -1,41 +1,42 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { absoluteUrl, COMPANY, SITE_BRAND_SHORT } from "@/data/site";
 
 const WHATSAPP = "https://wa.me/923494206922";
 
-export function generateMetadata(): Metadata {
-  const title =
-    "Alpha Freight Network | Dispatch, Compliance & Training";
-  const description =
-    "US trucking back-office services: dispatching, sourcing, MC lease-on, carrier sales, DAT management, and FMCSA compliance from Alpha Freight Network.";
-  const url = "https://www.alphasolutions.software/freight";
-  return {
+const title =
+  "Alpha Freight — Smart Dispatching & Load Management";
+const description =
+  "Manage loads, track drivers, and grow your carrier business with Alpha Freight — dispatch desks, onboarding, academy, and compliance touchpoints scoped to US motor carriers.";
+const canon = absoluteUrl("/freight");
+
+export const metadata: Metadata = {
+  title,
+  description,
+  keywords: [
+    "freight dispatch",
+    "trucking dispatch services",
+    "FMCSA compliance",
+    "motor carrier",
+    "MC number",
+    "DOT compliance",
+    "trucking back office",
+    "DAT load board",
+    "carrier sales",
+    "dispatch training",
+    "US trucking",
+    "Alpha Freight Network",
+  ],
+  alternates: { canonical: canon },
+  openGraph: {
     title,
     description,
-    keywords: [
-      "freight dispatch",
-      "trucking dispatch services",
-      "FMCSA compliance",
-      "motor carrier",
-      "MC number",
-      "DOT compliance",
-      "trucking back office",
-      "DAT load board",
-      "carrier sales",
-      "dispatch training",
-      "US trucking",
-      "Alpha Freight Network",
-    ],
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      type: "website",
-    },
-  };
-}
+    url: canon,
+    siteName: SITE_BRAND_SHORT,
+    type: "website",
+  },
+};
 
 const coreServices = [
   {
@@ -124,9 +125,28 @@ const freightFaqs = [
   },
 ] as const;
 
+const serviceLd = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  serviceType:
+    "Freight dispatch and motor carrier onboarding services backed by Alpha Solutions.",
+  provider: {
+    "@type": "Organization",
+    name: COMPANY.name,
+    url: absoluteUrl("/"),
+    logo: COMPANY.logoUrl,
+  },
+  areaServed: "United States",
+  url: canon,
+};
+
 export default function FreightLandingPage() {
   return (
     <main className="min-h-screen bg-[var(--color-bg)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceLd) }}
+      />
       {/* Hero */}
       <header className="relative overflow-hidden border-b border-[var(--color-border)] px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-20 lg:px-8">
         <div
@@ -182,10 +202,16 @@ export default function FreightLandingPage() {
               Message on WhatsApp
             </a>
             <Link
-              href="/freight/dispatch-training"
+              href="/freight/login"
+              className="inline-flex min-w-[220px] items-center justify-center rounded-lg border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 px-8 py-3.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/15"
+            >
+              Freight Portal
+            </Link>
+            <Link
+              href="/freight/student"
               className="inline-flex min-w-[220px] items-center justify-center rounded-lg border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)]/50 hover:text-[var(--color-accent)]"
             >
-              Dispatch training — $120
+              Academy &amp; training
             </Link>
           </div>
         </div>
@@ -277,7 +303,7 @@ export default function FreightLandingPage() {
       <section className="border-b border-[var(--color-border)] px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <Link
-            href="/freight/dispatch-training"
+            href="/freight/student/enroll"
             className="block overflow-hidden rounded-2xl border-2 border-[var(--color-accent)]/50 bg-[var(--color-accent-dim)] p-8 text-center transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/15 sm:p-10"
           >
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-accent)]">

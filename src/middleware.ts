@@ -4,11 +4,13 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) {
-    return NextResponse.next();
-  }
-
+  const { pathname } = request.nextUrl;
+  const isFreightRoute = pathname === "/freight" || pathname.startsWith("/freight/");
   let response = NextResponse.next({ request });
+
+  if (!url || !anon) {
+    return response;
+  }
 
   const supabase = createServerClient(url, anon, {
     cookies: {
@@ -17,22 +19,200 @@ export async function middleware(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
+          request.cookies.set(name, value),
         );
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
+          response.cookies.set(name, value, options),
         );
       },
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  /** Public freight marketing / onboarding (no enrollment wall). */
+  if (isFreightRoute) {
+    const publicFreight =
+      pathname === "/freight" ||
+      pathname === "/freight/student" ||
+      pathname === "/freight/dispatch-training" ||
+      pathname.startsWith("/freight/login") ||
+      pathname.startsWith("/freight/student/enroll") ||
+      pathname.startsWith("/freight/carrier/register") ||
+      pathname.startsWith("/freight/driver/accept-invite");
+
+    if (
+      pathname.startsWith("/freight/student/enroll") &&
+      user?.id &&
+      pathname === "/freight/student/enroll"
+    ) {
+      const { data: sp } = await supabase
+        .from("profiles")
+        .select("role,enrollment_status")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (sp?.role === "student" && sp.enrollment_status === "paid") {
+        const n = request.nextUrl.clone();
+        n.pathname = "/freight/student/dashboard";
+        n.search = "";
+        return NextResponse.redirect(n);
+      }
+    }
+
+    if (!publicFreight && !user?.id) {
+      const n = request.nextUrl.clone();
+      n.pathname = "/freight/login";
+      n.searchParams.set("next", pathname);
+      return NextResponse.redirect(n);
+    }
+
+    if (!publicFreight && user?.id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, enrollment_status, carrier_status")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile?.role) {
+        const n = request.nextUrl.clone();
+        n.pathname = "/freight/login";
+        n.searchParams.set("error", "profile");
+        return NextResponse.redirect(n);
+      }
+
+      if (pathname.startsWith("/freight/dispatcher")) {
+        if (profile.role !== "dispatcher") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          n.searchParams.set("next", pathname);
+          return NextResponse.redirect(n);
+        }
+      }
+
+      if (pathname.startsWith("/freight/student/dashboard")) {
+        if (profile.role !== "student") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          return NextResponse.redirect(n);
+        }
+        if (profile.enrollment_status === "refunded") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/student/enrollment-ended";
+          return NextResponse.redirect(n);
+        }
+        if (profile.enrollment_status !== "paid") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/student/enroll";
+          n.searchParams.set("reason", "payment");
+          return NextResponse.redirect(n);
+        }
+      }
+
+      if (pathname.startsWith("/freight/student/enrollment-ended")) {
+        if (profile.role !== "student") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          return NextResponse.redirect(n);
+        }
+        if (profile.enrollment_status !== "refunded") {
+          const n = request.nextUrl.clone();
+          n.pathname =
+            profile.enrollment_status === "paid"
+              ? "/freight/student/dashboard"
+              : "/freight/student/enroll";
+          return NextResponse.redirect(n);
+        }
+      }
+
+      if (pathname.startsWith("/freight/carrier/dashboard")) {
+        if (profile.role !== "carrier") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          return NextResponse.redirect(n);
+        }
+        if (profile.carrier_status === "pending") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/pending";
+          return NextResponse.redirect(n);
+        }
+        if (profile.carrier_status === "rejected") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/rejected";
+          return NextResponse.redirect(n);
+        }
+        if (profile.carrier_status === "suspended") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/suspended";
+          return NextResponse.redirect(n);
+        }
+        if (profile.carrier_status !== "verified") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/pending";
+          return NextResponse.redirect(n);
+        }
+      }
+
+      if (pathname.startsWith("/freight/carrier/pending")) {
+        if (profile.role !== "carrier") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          return NextResponse.redirect(n);
+        }
+        if (profile.carrier_status === "verified") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/dashboard";
+          return NextResponse.redirect(n);
+        }
+        if (profile.carrier_status === "rejected") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/rejected";
+          return NextResponse.redirect(n);
+        }
+        if (profile.carrier_status === "suspended") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/suspended";
+          return NextResponse.redirect(n);
+        }
+      }
+
+      if (pathname.startsWith("/freight/carrier/rejected")) {
+        if (
+          profile.role !== "carrier" ||
+          profile.carrier_status !== "rejected"
+        ) {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/pending";
+          return NextResponse.redirect(n);
+        }
+      }
+
+      if (pathname.startsWith("/freight/carrier/suspended")) {
+        if (
+          profile.role !== "carrier" ||
+          profile.carrier_status !== "suspended"
+        ) {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/carrier/dashboard";
+          return NextResponse.redirect(n);
+        }
+      }
+
+      if (pathname.startsWith("/freight/driver/dashboard")) {
+        if (profile.role !== "driver") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          return NextResponse.redirect(n);
+        }
+      }
+    }
+  }
 
   return response;
 }
 
-/** Only portal traffic needs session refresh cookies (keeps rest of site lean). */
 export const config = {
   matcher: [
     "/portal",
@@ -40,5 +220,7 @@ export const config = {
     "/admin",
     "/admin/:path*",
     "/auth/callback",
+    "/freight",
+    "/freight/:path*",
   ],
 };
