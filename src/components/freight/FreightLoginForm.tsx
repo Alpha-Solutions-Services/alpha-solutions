@@ -147,7 +147,7 @@ export function FreightLoginForm() {
         return;
       }
 
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from("profiles")
         .select("role, enrollment_status, carrier_status")
         .eq("id", uid)
@@ -159,6 +159,22 @@ export function FreightLoginForm() {
         setError("Dispatcher access is restricted to authorized accounts.");
         setLoading(false);
         return;
+      }
+      if (role === "dispatcher" && !profile?.role) {
+        const ensureRes = await fetch("/api/freight/dispatcher/ensure-profile", {
+          method: "POST",
+        });
+        if (!ensureRes.ok) {
+          setError("Unable to provision dispatcher access. Please contact support.");
+          setLoading(false);
+          return;
+        }
+        const { data: ensuredProfile } = await supabase
+          .from("profiles")
+          .select("role, enrollment_status, carrier_status")
+          .eq("id", uid)
+          .maybeSingle();
+        profile = ensuredProfile;
       }
 
       if (!profile?.role || profile.role !== role) {

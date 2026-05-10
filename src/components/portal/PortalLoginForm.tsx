@@ -46,6 +46,7 @@ function PortalLoginFields() {
     if (isAllowedAdminEmail(signedInEmail)) {
       router.push("/admin/dashboard");
     } else if (isAllowedDispatcherEmail(signedInEmail)) {
+      await fetch("/api/freight/dispatcher/ensure-profile", { method: "POST" });
       router.push("/freight/dispatcher/dashboard");
     } else {
       router.push("/portal/dashboard");

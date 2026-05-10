@@ -178,6 +178,26 @@ export async function GET(request: NextRequest) {
 
   const isDispatcher = isAllowedDispatcherEmail(user?.email);
   if (isDispatcher) {
+    const admin = getServiceRoleClient();
+    if (admin && user?.id) {
+      const { data: existing } = await admin
+        .from("profiles")
+        .select("id, role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!existing) {
+        await admin.from("profiles").insert({
+          id: user.id,
+          email: (user.email ?? "").toLowerCase(),
+          role: "dispatcher",
+        });
+      } else if (existing.role !== "dispatcher") {
+        await admin.from("profiles").update({ role: "dispatcher" }).eq("id", user.id);
+      }
+      await admin.auth.admin
+        .updateUserById(user.id, { user_metadata: { role: "dispatcher" } })
+        .catch(() => {});
+    }
     return NextResponse.redirect(`${origin}/freight/dispatcher/dashboard`);
   }
 
