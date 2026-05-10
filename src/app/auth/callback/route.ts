@@ -176,6 +176,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/freight/login`);
   }
 
+  const isDispatcher = isAllowedDispatcherEmail(user?.email);
+  if (isDispatcher) {
+    return NextResponse.redirect(`${origin}/freight/dispatcher/dashboard`);
+  }
+
   const isAdmin = isAllowedAdminEmail(user?.email);
 
   // Enforce portal vs admin destinations so users land in the correct UI.

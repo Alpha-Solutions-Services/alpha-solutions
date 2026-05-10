@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { isAllowedAdminEmail } from "@/lib/admin-allowlist";
+import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
 import { createClient } from "@/lib/supabase/client";
 
 function PortalLoginFields() {
@@ -42,7 +43,13 @@ function PortalLoginFields() {
     }
     const { data } = await supabase.auth.getUser();
     const signedInEmail = data.user?.email ?? email.trim();
-    router.push(isAllowedAdminEmail(signedInEmail) ? "/admin/dashboard" : "/portal/dashboard");
+    if (isAllowedAdminEmail(signedInEmail)) {
+      router.push("/admin/dashboard");
+    } else if (isAllowedDispatcherEmail(signedInEmail)) {
+      router.push("/freight/dispatcher/dashboard");
+    } else {
+      router.push("/portal/dashboard");
+    }
     router.refresh();
   }
 
