@@ -4,10 +4,12 @@ import { isPortalAuthConfigured } from "@/lib/supabase/env";
 
 /**
  * Server Components / Route Handlers — reads Supabase session from cookies.
+ * `await cookies()` is required for Next.js 15+ (async); on Next 14, `await`
+ * on a synchronous value is harmless.
  */
-export function createClient() {
+export async function createClient() {
   if (!isPortalAuthConfigured()) return null;
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return null;

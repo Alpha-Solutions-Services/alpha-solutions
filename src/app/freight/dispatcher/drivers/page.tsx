@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DispatcherDriversPage() {
-  const sb = createClient();
+  const sb = await createClient();
   let carriers: { id: string; company_name: string | null; full_name: string | null }[] = [];
 
   if (sb) {

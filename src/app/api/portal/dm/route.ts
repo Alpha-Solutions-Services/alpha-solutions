@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/portal/require-session";
@@ -8,11 +9,10 @@ const postSchema = z.object({
 });
 
 async function ensureThread(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   userId: string,
   email: string | undefined
 ) {
-  if (!supabase) return null;
   const { data: existing } = await supabase
     .from("dm_threads")
     .select("id")
@@ -41,7 +41,7 @@ export async function GET() {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json({ threadId: null, messages: [] });
   }
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json(
       { error: "Messaging is not configured in this environment" },

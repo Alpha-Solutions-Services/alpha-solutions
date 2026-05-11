@@ -13,7 +13,7 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const sb = createClient();
+  const sb = await createClient();
   if (!sb) {
     return NextResponse.json({ error: "Supabase unavailable" }, { status: 500 });
   }

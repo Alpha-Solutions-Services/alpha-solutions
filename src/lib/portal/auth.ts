@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /** Dedupe auth lookup within a single RSC request (layout + page). */
 export const getPortalUser = cache(async (): Promise<User | null> => {
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!supabase) return null;
   const {
     data: { user },

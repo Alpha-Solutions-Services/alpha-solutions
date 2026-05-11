@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 export async function getSessionUser(): Promise<
   { user: User } | { error: NextResponse }
 > {
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!supabase) {
     return {
       error: NextResponse.json(

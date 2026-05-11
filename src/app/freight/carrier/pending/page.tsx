@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CarrierPendingPage() {
-  const sb = createClient();
+  const sb = await createClient();
   let emailDisp = "";
 
   const u = sb ? await sb.auth.getUser() : { data: { user: null } };
