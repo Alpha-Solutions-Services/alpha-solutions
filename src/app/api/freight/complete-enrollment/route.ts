@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { z } from "zod";
+import { deliverAuthNotifications } from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { sendStudentWelcomeEmail } from "@/lib/freight/emails";
 
@@ -144,6 +145,14 @@ export async function POST(req: NextRequest) {
         ? "Monthly Access — Alpha Freight Academy"
         : "Lifetime Access — Alpha Freight Academy",
     );
+
+    void deliverAuthNotifications({
+      kind: "signup",
+      userId,
+      email: normalizedEmail,
+      profileRole: "student",
+      detail: "Student account created after paid enrollment.",
+    }).catch(() => {});
 
     return NextResponse.json({ success: true, userId });
   } catch (e) {

@@ -6,15 +6,19 @@ import { LogoutButton } from "./LogoutButton";
 export function PortalSidebar({
   name,
   email,
+  onNavigate,
 }: {
   name: string;
   email: string;
+  /** Close mobile drawer after navigation */
+  onNavigate?: () => void;
 }) {
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]/40">
+    <aside className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r border-[var(--color-border)] bg-[var(--color-surface)]/40">
       <div className="border-b border-[var(--color-border)] p-5">
         <Link
           href="/portal/dashboard"
+          onClick={onNavigate}
           className="flex items-center gap-3 text-[var(--color-text)]"
         >
           <Image
@@ -33,6 +37,7 @@ export function PortalSidebar({
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Portal">
         <Link
           href="/portal/dashboard"
+          onClick={onNavigate}
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-accent-dim)] hover:text-[var(--color-accent)]"
         >
           <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden />
@@ -49,6 +54,7 @@ export function PortalSidebar({
         <LogoutButton />
         <Link
           href="/"
+          onClick={onNavigate}
           className="mt-2 block rounded-lg px-3 py-2 text-center text-xs text-[var(--color-muted)] hover:text-[var(--color-accent)]"
         >
           ← Back to site

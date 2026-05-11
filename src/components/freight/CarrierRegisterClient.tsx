@@ -177,7 +177,7 @@ export function CarrierRegisterClient() {
             </>
           ) : (
             <p className="text-xs text-[var(--color-muted)] text-center">
-              Signed in with Google. Complete MC verification to open your carrier workspace.
+              Signed in with Google. Enter your MC number below and verify to open your carrier workspace.
             </p>
           )}
           <label className="block text-xs text-[var(--color-muted)]">MC number</label>

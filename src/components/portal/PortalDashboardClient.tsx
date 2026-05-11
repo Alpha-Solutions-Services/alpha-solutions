@@ -69,7 +69,7 @@ export function PortalDashboardClient({
   }
 
   return (
-    <div className="min-w-0 flex-1 p-6 md:p-8">
+    <div className="min-w-0 flex-1 px-4 py-6 supports-[padding:max(0px)]:pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 md:p-8">
       <header className="mb-8">
         <h1
           className="text-2xl font-bold text-[var(--color-text)] md:text-3xl"
@@ -96,7 +96,7 @@ export function PortalDashboardClient({
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={clsx(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+              "inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
               activeTab === tab.id
                 ? "bg-[var(--color-accent-dim)] text-[var(--color-accent)]"
                 : "text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"

@@ -15,7 +15,7 @@ export default async function PortalDashboardPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-w-0 flex-1 p-6 md:p-8">
+        <div className="min-w-0 flex-1 px-4 py-6 sm:px-6 md:p-8">
           <div className="h-28 animate-pulse rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25" />
         </div>
       }

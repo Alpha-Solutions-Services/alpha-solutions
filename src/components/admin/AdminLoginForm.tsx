@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ADMIN_LOGIN_HINT_EMAILS, isAllowedAdminEmail } from "@/lib/admin-allowlist";
+import { notifyAuthActivityClient } from "@/lib/auth/notify-client";
 import { createClient } from "@/lib/supabase/client";
 
 export function AdminLoginForm() {
@@ -41,6 +42,7 @@ export function AdminLoginForm() {
       setError("This account is not allowed to access admin.");
       return;
     }
+    notifyAuthActivityClient("login");
     setLoading(false);
     router.push("/admin/dashboard");
     router.refresh();

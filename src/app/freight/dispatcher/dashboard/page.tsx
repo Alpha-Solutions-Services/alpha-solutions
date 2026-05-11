@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function DispatcherDashboardPage() {
   return (
     <main className="min-h-[70vh] bg-[var(--color-bg)] px-4 pb-24 pt-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-10 py-12">
+      <div className="mx-auto max-w-4xl rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
         <h1 className="text-2xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
           Dispatcher HQ
         </h1>

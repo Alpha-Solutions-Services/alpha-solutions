@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { ResponsiveDashboardShell } from "@/components/layout/ResponsiveDashboardShell";
 import { isAdminUser } from "@/lib/admin-auth";
 import { getPortalUser, portalDisplayName } from "@/lib/portal/auth";
 
@@ -17,9 +18,13 @@ export default async function AdminDashboardLayout({
   const email = user.email ?? portalDisplayName(user);
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] w-full border-t border-[var(--color-border)] bg-[var(--color-bg)]">
-      <AdminSidebar email={email} />
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
-    </div>
+    <ResponsiveDashboardShell
+      mobileTitle="Admin"
+      sidebar={(closeMobile) => (
+        <AdminSidebar email={email} onNavigate={closeMobile} />
+      )}
+    >
+      {children}
+    </ResponsiveDashboardShell>
   );
 }

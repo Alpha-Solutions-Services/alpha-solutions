@@ -22,7 +22,7 @@ export default async function DispatcherDriversPage() {
 
   return (
     <main className="min-h-[70vh] bg-[var(--color-bg)] px-4 pb-24 pt-12">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-10 py-12">
+      <div className="mx-auto max-w-3xl rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-border)] pb-8">
           <div>
             <h1 className="text-2xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>

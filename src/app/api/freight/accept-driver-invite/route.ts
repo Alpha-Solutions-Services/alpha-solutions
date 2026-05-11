@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { deliverAuthNotifications } from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   brandedEmailWrap,
@@ -115,6 +116,14 @@ export async function POST(req: NextRequest) {
         text: `Driver ${body.fullName} accepted your Alpha Freight invitation.`,
       });
     }
+
+    void deliverAuthNotifications({
+      kind: "signup",
+      userId,
+      email: emailNorm,
+      profileRole: "driver",
+      detail: "Driver accepted invitation — account created.",
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true, userId });
   } catch (e) {

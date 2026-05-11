@@ -19,7 +19,7 @@ export default async function CarrierPendingPage() {
 
   return (
     <main className="min-h-[70vh] bg-[var(--color-bg)] px-4 pb-24 pt-20">
-      <div className="mx-auto max-w-lg rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-10 py-12 text-center">
+      <div className="mx-auto max-w-lg rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-10 text-center sm:px-10 sm:py-12">
         <Clock className="mx-auto h-14 w-14 text-[var(--color-accent)]" />
         <h1 className="mt-8 text-2xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
           Your account is pending approval

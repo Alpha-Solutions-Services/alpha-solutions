@@ -1,9 +1,50 @@
+import type { User } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAllowedAdminEmail, isSuperAdminEmail } from "@/lib/admin-allowlist";
 import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
+import {
+  deliverAuthNotifications,
+  isFirstAuthSession,
+} from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+
+function scheduleOAuthAuthNotify(
+  request: NextRequest,
+  user: User,
+  profileRoleHint: string | null,
+) {
+  if (!user.email) return;
+  const kind = isFirstAuthSession(user) ? ("signup" as const) : ("login" as const);
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    null;
+  const ua = request.headers.get("user-agent");
+  void (async () => {
+    const admin = getServiceRoleClient();
+    let profileRole = profileRoleHint;
+    if (admin) {
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prof?.role) profileRole = prof.role;
+    }
+    await deliverAuthNotifications({
+      kind,
+      userId: user.id,
+      email: user.email!,
+      profileRole,
+      clientIp: ip,
+      userAgent: ua,
+      detail:
+        kind === "signup" ? "OAuth / email link — first session." : undefined,
+    });
+  })().catch(() => {});
+}
 
 /**
  * Completes the browser OAuth flow (e.g. Google) and sets the session cookie.
@@ -95,8 +136,18 @@ export async function GET(request: NextRequest) {
           enrollment_status: freightRole === "student" ? "unpaid" : null,
           carrier_status: freightRole === "carrier" ? "pending" : null,
         });
-      } else if (!existing.role || superAdmin) {
-        await admin.from("profiles").update({ role: freightRole }).eq("id", user.id);
+      } else {
+        // Default profile role is `client` (schema default). Treat it like "unset" so
+        // the role card the user picked (carrier, student, …) actually applies.
+        const isUnsetOrGeneric =
+          !existing.role || existing.role === "client";
+        const mayApplyFreightCard =
+          superAdmin ||
+          isUnsetOrGeneric ||
+          existing.role === freightRole;
+        if (mayApplyFreightCard && existing.role !== freightRole) {
+          await admin.from("profiles").update({ role: freightRole }).eq("id", user.id);
+        }
       }
 
       // Keep auth metadata aligned (non-blocking).
@@ -134,6 +185,8 @@ export async function GET(request: NextRequest) {
       | null;
 
     if (!role) return NextResponse.redirect(`${origin}/freight/login?error=profile`);
+
+    scheduleOAuthAuthNotify(request, user, role);
 
     if (role === "dispatcher") {
       if (
@@ -198,8 +251,21 @@ export async function GET(request: NextRequest) {
         .updateUserById(user.id, { user_metadata: { role: "dispatcher" } })
         .catch(() => {});
     }
+    if (user) scheduleOAuthAuthNotify(request, user, "dispatcher");
     return NextResponse.redirect(`${origin}/freight/dispatcher/dashboard`);
   }
+
+  const srNotify = getServiceRoleClient();
+  let oauthPortalRole: string | null = null;
+  if (srNotify && user?.id) {
+    const { data: profNotify } = await srNotify
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    oauthPortalRole = profNotify?.role ?? null;
+  }
+  if (user) scheduleOAuthAuthNotify(request, user, oauthPortalRole);
 
   const isAdmin = isAllowedAdminEmail(user?.email);
 

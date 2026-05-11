@@ -10,6 +10,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { notifyAuthActivityClient } from "@/lib/auth/notify-client";
 import { createClient } from "@/lib/supabase/client";
 import { isSuperAdminEmail } from "@/lib/admin-allowlist";
 import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
@@ -177,6 +178,14 @@ export function FreightLoginForm() {
         profile = ensuredProfile;
       }
 
+      if (role === "carrier" && profile?.role === "client") {
+        notifyAuthActivityClient("login");
+        router.replace("/freight/carrier/register");
+        router.refresh();
+        setLoading(false);
+        return;
+      }
+
       if (!profile?.role || profile.role !== role) {
         if (superAdmin && role !== "driver") {
           // Super admins can switch between freight roles (except driver invite-only).
@@ -214,6 +223,7 @@ export function FreightLoginForm() {
         else dest = "/freight/carrier/pending";
       }
 
+      notifyAuthActivityClient("login");
       router.replace(dest);
       router.refresh();
     } finally {

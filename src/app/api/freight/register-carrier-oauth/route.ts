@@ -8,6 +8,7 @@ import {
   normalizeMcNumber,
   summarizeFmcsCarrier,
 } from "@/lib/freight/fmcsa";
+import { deliverAuthNotifications } from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 
 const schema = z.object({
@@ -168,6 +169,14 @@ export async function POST(req: NextRequest) {
       .catch(() => {});
 
     await sendCarrierPendingEmail(emailNorm, companyName || "Carrier", normalizedMc).catch(() => {});
+
+    void deliverAuthNotifications({
+      kind: "login",
+      userId: user.id,
+      email: emailNorm,
+      profileRole: "carrier",
+      detail: "Carrier completed MC registration (Google OAuth).",
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true, userId: user.id, fmcsaVerified });
   } catch (e) {

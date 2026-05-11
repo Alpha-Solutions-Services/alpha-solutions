@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export function AdminSidebar({ email }: { email: string }) {
+export function AdminSidebar({
+  email,
+  onNavigate,
+}: {
+  email: string;
+  onNavigate?: () => void;
+}) {
   const router = useRouter();
 
   async function signOut() {
@@ -28,18 +34,21 @@ export function AdminSidebar({ email }: { email: string }) {
         <nav className="flex flex-col gap-1 text-sm">
           <Link
             href="/admin/dashboard"
+            onClick={onNavigate}
             className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
             Dashboard
           </Link>
           <Link
             href="/"
+            onClick={onNavigate}
             className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
             Public site
           </Link>
           <Link
             href="/portal/dashboard"
+            onClick={onNavigate}
             className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
             Client portal

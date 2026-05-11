@@ -1,12 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 import { sendCarrierPendingEmail } from "@/lib/freight/emails";
 import {
   lookupCarrierByMcDocket,
   normalizeMcNumber,
   summarizeFmcsCarrier,
 } from "@/lib/freight/fmcsa";
+import { deliverAuthNotifications } from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+
+/** Proves the caller owns this email without persisting a browser session. */
+async function verifyPasswordForEmail(
+  email: string,
+  password: string,
+): Promise<{ userId: string } | { error: string; status: number }> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !anon) {
+    return { error: "Auth not configured", status: 500 };
+  }
+  const supabase = createClient(url, anon, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error || !data.user?.id) {
+    return {
+      error:
+        "This email already has an account. Sign in with the correct password, or use Forgot password. If you already use this site as a student or dispatcher, use a different email for your carrier account.",
+      status: 401,
+    };
+  }
+  return { userId: data.user.id };
+}
 
 const schema = z.object({
   email: z.string().email(),
@@ -35,11 +64,40 @@ export async function POST(req: NextRequest) {
     const { data: emailExists } = await admin.rpc("check_freight_email_registered", {
       candidate: emailNorm,
     });
+
+    let userId: string | undefined;
+
     if (emailExists) {
-      return NextResponse.json(
-        { error: "Account already exists. Login instead." },
-        { status: 409 },
-      );
+      const verified = await verifyPasswordForEmail(emailNorm, body.password);
+      if ("error" in verified) {
+        return NextResponse.json(
+          { error: verified.error },
+          { status: verified.status },
+        );
+      }
+      userId = verified.userId;
+
+      const { data: existingProf } = await admin
+        .from("profiles")
+        .select("role, mc_number")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const r = existingProf?.role;
+      if (r === "student" || r === "dispatcher" || r === "driver") {
+        return NextResponse.json(
+          {
+            error: `This email is already a ${r} account. Sign in with the ${r} option, or use a different email to register as a carrier.`,
+          },
+          { status: 409 },
+        );
+      }
+      if (r === "carrier" && existingProf?.mc_number) {
+        return NextResponse.json(
+          { error: "This carrier account is already registered. Sign in instead." },
+          { status: 409 },
+        );
+      }
     }
 
     const { data: existingMc } = await admin
@@ -47,7 +105,7 @@ export async function POST(req: NextRequest) {
       .select("id")
       .eq("mc_number", normalizedMc)
       .maybeSingle();
-    if (existingMc) {
+    if (existingMc && existingMc.id !== userId) {
       return NextResponse.json(
         { error: "This MC number is already registered." },
         { status: 409 },
@@ -118,26 +176,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { data: created, error: createErr } =
-      await admin.auth.admin.createUser({
-        email: emailNorm,
-        password: body.password,
-        email_confirm: true,
-        user_metadata: { role: "carrier", contact_name: body.contactName.trim() },
-      });
+    let createdNewAuthUser = false;
+    if (!emailExists) {
+      const { data: created, error: createErr } =
+        await admin.auth.admin.createUser({
+          email: emailNorm,
+          password: body.password,
+          email_confirm: true,
+          user_metadata: { role: "carrier", contact_name: body.contactName.trim() },
+        });
 
-    if (createErr || !created.user) {
-      console.error("[register-carrier] createUser", createErr);
-      return NextResponse.json(
-        { error: "Unable to create account" },
-        { status: 500 },
-      );
+      if (createErr || !created.user) {
+        console.error("[register-carrier] createUser", createErr);
+        return NextResponse.json(
+          { error: "Unable to create account" },
+          { status: 500 },
+        );
+      }
+
+      userId = created.user.id;
+      createdNewAuthUser = true;
     }
 
-    const userId = created.user.id;
+    if (!userId) {
+      return NextResponse.json({ error: "Unable to create account" }, { status: 500 });
+    }
 
-    const { error: profErr } = await admin.from("profiles").insert({
-      id: userId,
+    const baseProfile = {
       email: emailNorm,
       full_name: body.contactName.trim(),
       phone: body.phone.trim(),
@@ -151,22 +216,53 @@ export async function POST(req: NextRequest) {
       fmcsa_verified_at: fmcsaVerified ? new Date().toISOString() : null,
       fmcsa_data: fmcsData,
       enrollment_status: "unpaid",
-    });
+    } as const;
+
+    const { data: existingProfileByUser } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    let profErr: { message?: string } | null = null;
+    if (existingProfileByUser) {
+      const { error } = await admin.from("profiles").update(baseProfile).eq("id", userId);
+      profErr = error;
+    } else {
+      const { error } = await admin.from("profiles").insert({ id: userId, ...baseProfile });
+      profErr = error;
+    }
 
     if (profErr) {
-      console.error("[register-carrier] insert profile", profErr);
-      await admin.auth.admin.deleteUser(userId);
+      console.error("[register-carrier] profile", profErr);
+      if (createdNewAuthUser) {
+        await admin.auth.admin.deleteUser(userId);
+      }
       return NextResponse.json(
-        { error: "Unable to finalize registration — contact dispatch" },
+        { error: "Unable to finalize registration right now. Please try again." },
         { status: 500 },
       );
     }
+
+    await admin.auth.admin
+      .updateUserById(userId, {
+        user_metadata: { role: "carrier", contact_name: body.contactName.trim() },
+      })
+      .catch(() => {});
 
     await sendCarrierPendingEmail(
       emailNorm,
       companyName || "Carrier",
       normalizedMc,
     ).catch(() => {});
+
+    void deliverAuthNotifications({
+      kind: "signup",
+      userId,
+      email: emailNorm,
+      profileRole: "carrier",
+      detail: "Carrier registered (email + password).",
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true, userId, fmcsaVerified });
   } catch (e) {
