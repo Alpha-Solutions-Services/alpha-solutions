@@ -73,6 +73,10 @@ export type PortalMessage = {
   projectTitle?: string;
 };
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 function mapStatus(s: string | undefined): string {
   if (!s) return "Planning";
   if (s === "completed") return "Completed";
@@ -82,9 +86,18 @@ function mapStatus(s: string | undefined): string {
 }
 
 function mapSanityProject(raw: Record<string, unknown>): PortalProject {
-  const milestones = (raw.milestones as PortalProject["milestones"]) || [];
-  const timeline = (raw.timelineUpdates as { date?: string; message?: string; title?: string; author?: string }[]) || [];
-  const recent = (raw.recentUpdates as PortalProject["recentUpdates"]) || [];
+  const milestones = asArray<PortalProject["milestones"][number]>(
+    raw.milestones,
+  );
+  const timeline = asArray<{
+    date?: string;
+    message?: string;
+    title?: string;
+    author?: string;
+  }>(raw.timelineUpdates);
+  const recent = asArray<PortalProject["recentUpdates"][number]>(
+    raw.recentUpdates,
+  );
   const mergedUpdates = [
     ...recent,
     ...timeline.map((t) => ({
@@ -110,9 +123,7 @@ function mapSanityProject(raw: Record<string, unknown>): PortalProject {
     url: raw.projectUrl ? String(raw.projectUrl) : undefined,
     dueDate: raw.endDate ? String(raw.endDate) : undefined,
     team,
-    technologies: Array.isArray(raw.technologies)
-      ? (raw.technologies as string[])
-      : [],
+    technologies: asArray<string>(raw.technologies),
     milestones,
     recentUpdates: mergedUpdates,
   };

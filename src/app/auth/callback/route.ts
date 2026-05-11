@@ -103,9 +103,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  const user = userData?.user ?? null;
+  if (userErr && !user) {
+    return NextResponse.redirect(
+      `${origin}${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`
+    );
+  }
 
   // Freight OAuth: set role on first login, then route by role/status.
   if (nextIsFreight || freightFlag) {

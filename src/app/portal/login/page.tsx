@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { redirect } from "next/navigation";
 import { getPortalUser } from "@/lib/portal/auth";
 import { isAdminUser } from "@/lib/admin-auth";
 import { isPortalAuthConfigured } from "@/lib/supabase/env";
 
-const PortalLoginForm = dynamic(
+export const dynamic = "force-dynamic";
+
+const PortalLoginForm = nextDynamic(
   () =>
     import("@/components/portal/PortalLoginForm").then(
       (m) => m.PortalLoginForm

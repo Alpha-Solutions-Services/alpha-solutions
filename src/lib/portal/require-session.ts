@@ -14,10 +14,8 @@ export async function getSessionUser(): Promise<
       ),
     };
   }
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
+  const user = data?.user ?? null;
   if (error || !user) {
     return {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),

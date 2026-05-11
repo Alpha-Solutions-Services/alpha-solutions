@@ -126,7 +126,7 @@ export function ProjectCard({
                 <span className="font-medium text-[var(--color-text)]">
                   Team:
                 </span>{" "}
-                {project.team.join(", ")}
+                {(project.team ?? []).join(", ")}
               </p>
             </div>
           </div>

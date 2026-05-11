@@ -7,6 +7,8 @@ import { isAdminUser } from "@/lib/admin-auth";
 import { getPortalUser } from "@/lib/portal/auth";
 import { isPortalAuthConfigured } from "@/lib/supabase/env";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLoginPage() {
   const user = await getPortalUser();
   if (user && isAdminUser(user)) {

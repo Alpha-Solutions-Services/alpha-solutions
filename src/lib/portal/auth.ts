@@ -1,15 +1,20 @@
 import { cache } from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
-/** Dedupe auth lookup within a single RSC request (layout + page). */
+/**
+ * Dedupe auth lookup within a single RSC request (layout + page).
+ * `noStore()` ensures routes using cookies are not treated as fully static
+ * (avoids Next.js "Dynamic server usage" during prerender).
+ */
 export const getPortalUser = cache(async (): Promise<User | null> => {
+  noStore();
   const supabase = await createClient();
   if (!supabase) return null;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) return null;
+  return data.user;
 });
 
 export function portalDisplayName(user: User): string {

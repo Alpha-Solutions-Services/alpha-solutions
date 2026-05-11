@@ -14,26 +14,33 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient(url, anon, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
+  let supabase: ReturnType<typeof createServerClient>;
+  let user: { id: string; email?: string | null } | null = null;
+  try {
+    supabase = createServerClient(url, anon, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value),
-        );
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    });
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data?.user?.id) {
+      user = data.user;
+    }
+  } catch (e) {
+    console.error("[middleware] Supabase session read failed:", e);
+    return NextResponse.next({ request });
+  }
 
   /** Public freight marketing / onboarding (no enrollment wall). */
   if (isFreightRoute) {

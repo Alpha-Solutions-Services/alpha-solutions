@@ -14,7 +14,8 @@ function useHash() {
   const [hash, setHash] = useState("");
 
   useEffect(() => {
-    const read = () => setHash(typeof window !== "undefined" ? window.location.hash : "");
+    if (typeof window === "undefined") return;
+    const read = () => setHash(window.location.hash);
     read();
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
@@ -74,7 +75,8 @@ function NavLink({
 }
 
 export function Navbar() {
-  const pathname = usePathname();
+  const pathnameRaw = usePathname();
+  const pathname = pathnameRaw ?? "";
   const router = useRouter();
   const hash = useHash();
   const [mobileOpen, setMobileOpen] = useState(false);
