@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import FreightStudentEnroll from "@/components/freight/FreightStudentEnroll";
+import { resolveSearchParams } from "@/lib/next/resolve-search-params";
 
 export const metadata: Metadata = {
   title: "Enroll — Alpha Freight Academy",
@@ -7,14 +8,15 @@ export const metadata: Metadata = {
     "Choose monthly or lifetime access, create your academy login, and complete Stripe checkout.",
 };
 
-export default function StudentEnrollPage({
+export default async function StudentEnrollPage({
   searchParams,
 }: {
-  searchParams?: { reason?: string };
+  searchParams?: Promise<{ reason?: string }> | { reason?: string };
 }) {
+  const sp = await resolveSearchParams(searchParams);
   return (
     <main className="min-h-screen bg-[var(--color-bg)]">
-      <FreightStudentEnroll initialReason={searchParams?.reason} />
+      <FreightStudentEnroll initialReason={sp?.reason} />
     </main>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { resolveSearchParams } from "@/lib/next/resolve-search-params";
 
 export const metadata: Metadata = {
   title: "Student Dashboard — Alpha Freight",
@@ -7,15 +8,16 @@ export const metadata: Metadata = {
     "Lessons, quizzes, drills, and your practice board — centralized for enrolled students.",
 };
 
-export default function StudentDashboardPage({
+export default async function StudentDashboardPage({
   searchParams,
 }: {
-  searchParams?: { welcome?: string };
+  searchParams?: Promise<{ welcome?: string }> | { welcome?: string };
 }) {
+  const sp = await resolveSearchParams(searchParams);
   return (
     <main className="min-h-[70vh] bg-[var(--color-bg)] px-4 pb-24 pt-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        {searchParams?.welcome ? (
+        {sp?.welcome ? (
           <p className="mb-10 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
             Enrollment successful — bookmark this dashboard while we roll out sequential modules inside your Supabase-connected workspace.
           </p>

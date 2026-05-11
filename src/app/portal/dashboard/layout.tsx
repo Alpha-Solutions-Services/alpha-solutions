@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getPortalUser, portalDisplayName } from "@/lib/portal/auth";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
@@ -7,7 +8,7 @@ import { isAdminUser } from "@/lib/admin-auth";
 export default async function PortalDashboardLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   const user = await getPortalUser();
   if (!user) {

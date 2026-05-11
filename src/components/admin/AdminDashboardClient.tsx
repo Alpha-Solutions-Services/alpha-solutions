@@ -70,6 +70,8 @@ export function AdminDashboardClient() {
     getScrollElement: () => tableWrap,
     estimateSize: () => 120,
     overscan: 8,
+    // Avoid measuring before the inquiries tab mounts (scroll parent ref is null).
+    enabled: tab === "inquiries",
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
 

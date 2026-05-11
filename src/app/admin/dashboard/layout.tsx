@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { ResponsiveDashboardShell } from "@/components/layout/ResponsiveDashboardShell";
@@ -6,7 +7,7 @@ import { getPortalUser, portalDisplayName } from "@/lib/portal/auth";
 
 export default async function AdminDashboardLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{ children: ReactNode }>) {
   const user = await getPortalUser();
   if (!user) {
     redirect("/admin/login");

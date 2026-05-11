@@ -38,12 +38,12 @@
     "sharp": "^0.34.5",
     "stripe": "^22.0.2",
     "tailwind-merge": "^3.5.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@tanstack/react-virtual": "^3.13.24"
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.15.9",
     "@next/bundle-analyzer": "^16.2.6",
-    "@tanstack/react-virtual": "^3.13.24",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^18",
