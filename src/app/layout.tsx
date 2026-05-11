@@ -99,7 +99,6 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" type="image/png" sizes="512x512" />
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon.png" />
-        <link rel="preload" as="image" href="/hero.webp" />
         <link rel="preconnect" href="https://lx58x5y4.supabase.co" crossOrigin="" />
       </head>
       {gtmId ? (

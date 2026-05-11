@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useDashboardMobileNavClose } from "@/components/layout/ResponsiveDashboardShell";
 
 export function AdminSidebar({
   email,
@@ -12,6 +13,11 @@ export function AdminSidebar({
   onNavigate?: () => void;
 }) {
   const router = useRouter();
+  const closeFromShell = useDashboardMobileNavClose();
+  function handleNavigate() {
+    onNavigate?.();
+    closeFromShell?.();
+  }
 
   async function signOut() {
     const supabase = createClient();
@@ -34,21 +40,21 @@ export function AdminSidebar({
         <nav className="flex flex-col gap-1 text-sm">
           <Link
             href="/admin/dashboard"
-            onClick={onNavigate}
+            onClick={handleNavigate}
             className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
             Dashboard
           </Link>
           <Link
             href="/"
-            onClick={onNavigate}
+            onClick={handleNavigate}
             className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
             Public site
           </Link>
           <Link
             href="/portal/dashboard"
-            onClick={onNavigate}
+            onClick={handleNavigate}
             className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
           >
             Client portal

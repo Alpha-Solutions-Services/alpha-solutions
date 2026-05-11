@@ -26,9 +26,7 @@ export default async function PortalDashboardLayout({
   return (
     <ResponsiveDashboardShell
       mobileTitle="Client portal"
-      sidebar={(closeMobile) => (
-        <PortalSidebar name={name} email={email} onNavigate={closeMobile} />
-      )}
+      sidebar={<PortalSidebar name={name} email={email} />}
     >
       {children}
     </ResponsiveDashboardShell>

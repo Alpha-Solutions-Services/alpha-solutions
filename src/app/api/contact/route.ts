@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     const recipient =
-      process.env.CONTACT_EMAIL || "alphaassistant.alpha@gmail.com";
+      process.env.CONTACT_EMAIL || "info@alphasolutions.software";
     const smtpHost = process.env.SMTP_HOST?.trim();
     const smtpUser = process.env.SMTP_USER?.trim();
     const smtpPassRaw = process.env.SMTP_PASS;

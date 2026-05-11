@@ -23,9 +23,7 @@ export default async function AdminDashboardLayout({
   return (
     <ResponsiveDashboardShell
       mobileTitle="Admin"
-      sidebar={(closeMobile) => (
-        <AdminSidebar email={email} onNavigate={closeMobile} />
-      )}
+      sidebar={<AdminSidebar email={email} />}
     >
       {children}
     </ResponsiveDashboardShell>

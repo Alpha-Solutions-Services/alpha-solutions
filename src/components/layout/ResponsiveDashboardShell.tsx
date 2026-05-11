@@ -1,8 +1,23 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import clsx from "clsx";
 import { Menu } from "lucide-react";
+
+const CloseMobileNavContext = createContext<(() => void) | undefined>(
+  undefined,
+);
+
+/** When rendered inside ResponsiveDashboardShell, closes the mobile drawer after nav. */
+export function useDashboardMobileNavClose(): (() => void) | undefined {
+  return useContext(CloseMobileNavContext);
+}
 
 /**
  * Sidebar + main layout: drawer navigation on small screens, fixed sidebar from md up.
@@ -12,7 +27,7 @@ export function ResponsiveDashboardShell({
   mobileTitle,
   children,
 }: {
-  sidebar: (closeMobile: () => void) => ReactNode;
+  sidebar: ReactNode;
   mobileTitle: string;
   children: ReactNode;
 }) {
@@ -49,7 +64,9 @@ export function ResponsiveDashboardShell({
           open ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0",
         )}
       >
-        {sidebar(closeMobile)}
+        <CloseMobileNavContext.Provider value={closeMobile}>
+          {sidebar}
+        </CloseMobileNavContext.Provider>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">

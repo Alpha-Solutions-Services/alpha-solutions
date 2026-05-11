@@ -37,7 +37,7 @@ const FILE_UPLOADS = `*[_type == "fileUpload"] | order(coalesce(uploadedAt, uplo
   uploadedBy,
   projectId,
   downloadUrl,
-  uploadedAt: coalesce(uploadedAt, uploadDate),
+  "uploadedAt": coalesce(uploadedAt, uploadDate),
   _createdAt,
   _updatedAt
 }`;
