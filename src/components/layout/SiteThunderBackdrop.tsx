@@ -11,7 +11,14 @@ import { ThunderstormBackdrop } from "@/components/home/ThunderstormBackdrop";
  */
 export function SiteThunderBackdrop() {
   const pathname = usePathname();
-  if (pathname?.startsWith("/blog")) {
+  if (!pathname) return null;
+  if (pathname.startsWith("/blog")) return null;
+  // Heavy canvas backdrop — disable on authenticated app shells to avoid rare GPU/tab crashes.
+  if (
+    pathname.startsWith("/portal") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/freight")
+  ) {
     return null;
   }
 

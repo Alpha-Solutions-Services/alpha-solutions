@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import clsx from "clsx";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   BarChart3,
   Inbox,
@@ -64,16 +63,6 @@ export function AdminDashboardClient() {
   const [threadMessages, setThreadMessages] = useState<DmMessage[]>([]);
   const [reply, setReply] = useState("");
   const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [tableWrap, setTableWrap] = useState<HTMLDivElement | null>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: inquiries.length,
-    getScrollElement: () => tableWrap,
-    estimateSize: () => 120,
-    overscan: 8,
-    // Avoid measuring before the inquiries tab mounts (scroll parent ref is null).
-    enabled: tab === "inquiries",
-  });
-  const virtualRows = rowVirtualizer.getVirtualItems();
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -220,10 +209,7 @@ export function AdminDashboardClient() {
       ) : null}
 
       {tab === "inquiries" ? (
-        <div
-          ref={setTableWrap}
-          className="max-h-[70vh] overflow-auto rounded-xl border border-[var(--color-border)]"
-        >
+        <div className="max-h-[70vh] overflow-auto rounded-xl border border-[var(--color-border)]">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/40">
               <tr>
@@ -244,15 +230,11 @@ export function AdminDashboardClient() {
                 </th>
               </tr>
             </thead>
-            <tbody style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
-              {virtualRows.map((vRow) => {
-                const row = inquiries[vRow.index];
-                if (!row) return null;
-                return (
+            <tbody>
+              {inquiries.map((row) => (
                 <tr
                   key={row.id}
-                  className="absolute left-0 top-0 w-full border-b border-[var(--color-border)]/60 align-top"
-                  style={{ transform: `translateY(${vRow.start}px)` }}
+                  className="border-b border-[var(--color-border)]/60 align-top"
                 >
                   <td className="p-3 text-[var(--color-muted)]">
                     {new Date(row.created_at).toLocaleString()}
@@ -297,8 +279,7 @@ export function AdminDashboardClient() {
                     </select>
                   </td>
                 </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
           {inquiries.length === 0 ? (

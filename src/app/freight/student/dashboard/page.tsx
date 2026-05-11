@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { resolveSearchParams } from "@/lib/next/resolve-search-params";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Student Dashboard — Alpha Freight",
   description:

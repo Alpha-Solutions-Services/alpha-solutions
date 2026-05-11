@@ -5,6 +5,8 @@ import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { ResponsiveDashboardShell } from "@/components/layout/ResponsiveDashboardShell";
 import { isAdminUser } from "@/lib/admin-auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function PortalDashboardLayout({
   children,
 }: Readonly<{
