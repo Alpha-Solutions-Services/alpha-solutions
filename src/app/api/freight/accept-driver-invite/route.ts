@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { verifyPasswordForEmail } from "@/lib/auth/verify-password-for-email";
 import { deliverAuthNotifications } from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import {
@@ -42,48 +43,115 @@ export async function POST(req: NextRequest) {
     }
 
     const emailNorm = String(invite.driver_email).toLowerCase();
-    const { data: exists } = await admin.rpc("check_freight_email_registered", {
+    const { data: emailExists } = await admin.rpc("check_freight_email_registered", {
       candidate: emailNorm,
     });
-    if (exists) {
-      return NextResponse.json(
-        { error: "An account already exists for this email." },
-        { status: 409 },
-      );
+
+    let userId: string;
+    let createdNewAuthUser = false;
+
+    if (emailExists) {
+      const verified = await verifyPasswordForEmail(emailNorm, body.password);
+      if ("error" in verified) {
+        return NextResponse.json(
+          { error: verified.error },
+          { status: verified.status },
+        );
+      }
+      userId = verified.userId;
+
+      const { data: existingProf } = await admin
+        .from("profiles")
+        .select("role, carrier_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const r = existingProf?.role;
+      if (r === "student" || r === "dispatcher") {
+        return NextResponse.json(
+          {
+            error: `This email is already a ${r} account. Use a different email for this driver invitation, or sign in with that role.`,
+          },
+          { status: 409 },
+        );
+      }
+      if (r === "carrier") {
+        return NextResponse.json(
+          {
+            error:
+              "This email is registered as a carrier. Use a different email for your driver account.",
+          },
+          { status: 409 },
+        );
+      }
+      if (
+        r === "driver" &&
+        existingProf?.carrier_id &&
+        existingProf.carrier_id !== invite.carrier_id
+      ) {
+        return NextResponse.json(
+          { error: "This email is already a driver for another carrier." },
+          { status: 409 },
+        );
+      }
+    } else {
+      const { data: authUser, error: authErr } = await admin.auth.admin.createUser({
+        email: emailNorm,
+        password: body.password,
+        email_confirm: true,
+        user_metadata: { role: "driver", full_name: body.fullName.trim() },
+      });
+      if (authErr || !authUser?.user?.id) {
+        console.error("[accept-driver-invite] createUser", authErr);
+        return NextResponse.json({ error: "Could not create account" }, { status: 500 });
+      }
+      userId = authUser.user.id;
+      createdNewAuthUser = true;
     }
 
-    const { data: authUser, error: authErr } = await admin.auth.admin.createUser({
-      email: emailNorm,
-      password: body.password,
-      email_confirm: true,
-      user_metadata: { role: "driver", full_name: body.fullName.trim() },
-    });
-    if (authErr || !authUser?.user?.id) {
-      console.error("[accept-driver-invite] createUser", authErr);
-      return NextResponse.json({ error: "Could not create account" }, { status: 500 });
-    }
-
-    const userId = authUser.user.id;
-
-    const { error: profileErr } = await admin.from("profiles").insert({
-      id: userId,
+    const driverPayload = {
       email: emailNorm,
       full_name: body.fullName.trim(),
       phone: body.phone.trim(),
-      role: "driver",
+      role: "driver" as const,
       carrier_id: invite.carrier_id as string,
-      enrollment_status: "unpaid",
-      carrier_status: "pending",
+      enrollment_status: "unpaid" as const,
+      carrier_status: "pending" as const,
       cdl_number: body.cdlNumber.trim(),
       cdl_state: body.cdlState.trim().toUpperCase(),
       cdl_expiry: body.cdlExpiry.slice(0, 10),
-    });
+    };
+
+    const { data: profRow } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    let profileErr: { message?: string } | null = null;
+    if (profRow) {
+      const { error } = await admin.from("profiles").update(driverPayload).eq("id", userId);
+      profileErr = error;
+    } else {
+      const { error } = await admin
+        .from("profiles")
+        .insert({ id: userId, ...driverPayload });
+      profileErr = error;
+    }
 
     if (profileErr) {
-      console.error("[accept-driver-invite] profile insert", profileErr);
-      await admin.auth.admin.deleteUser(userId);
+      console.error("[accept-driver-invite] profile upsert", profileErr);
+      if (createdNewAuthUser) {
+        await admin.auth.admin.deleteUser(userId);
+      }
       return NextResponse.json({ error: "Profile setup failed" }, { status: 500 });
     }
+
+    await admin.auth.admin
+      .updateUserById(userId, {
+        user_metadata: { role: "driver", full_name: body.fullName.trim() },
+      })
+      .catch(() => {});
 
     await admin
       .from("driver_invitations")

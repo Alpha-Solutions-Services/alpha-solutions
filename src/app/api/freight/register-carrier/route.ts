@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
+import { verifyPasswordForEmail } from "@/lib/auth/verify-password-for-email";
 import { sendCarrierPendingEmail } from "@/lib/freight/emails";
 import {
   lookupCarrierByMcDocket,
@@ -9,33 +9,6 @@ import {
 } from "@/lib/freight/fmcsa";
 import { deliverAuthNotifications } from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
-
-/** Proves the caller owns this email without persisting a browser session. */
-async function verifyPasswordForEmail(
-  email: string,
-  password: string,
-): Promise<{ userId: string } | { error: string; status: number }> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-  if (!url || !anon) {
-    return { error: "Auth not configured", status: 500 };
-  }
-  const supabase = createClient(url, anon, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error || !data.user?.id) {
-    return {
-      error:
-        "This email already has an account. Sign in with the correct password, or use Forgot password. If you already use this site as a student or dispatcher, use a different email for your carrier account.",
-      status: 401,
-    };
-  }
-  return { userId: data.user.id };
-}
 
 const schema = z.object({
   email: z.string().email(),

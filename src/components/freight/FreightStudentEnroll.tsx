@@ -176,7 +176,7 @@ function InnerPaymentCard({
                 </div>
 
                 <div className="mt-5 flex items-center justify-between">
-                  <ChipIcon className="h-10 w-12" />
+                  <ChipIcon className="h-10 w-14" />
                   <div className="h-7 w-7 rounded-full border border-[var(--color-border)] bg-[var(--color-accent)]/10" />
                 </div>
 
@@ -326,6 +326,8 @@ export default function FreightStudentEnroll({
   const [formErr, setFormErr] = useState<string | null>(null);
   const [oauthUserId, setOauthUserId] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
+  /** Email already in auth — checkout may link paid student to that account (see complete-enrollment). */
+  const [linkExistingAccount, setLinkExistingAccount] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -365,8 +367,12 @@ export default function FreightStudentEnroll({
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (data.exists) setFormErr("Account already exists. Use /freight/login instead.");
-      else setStep(3);
+      if (!res.ok) {
+        setFormErr(typeof data.error === "string" ? data.error : "Could not validate email.");
+        return;
+      }
+      setLinkExistingAccount(Boolean(data.exists));
+      setStep(3);
     } catch {
       setFormErr("Could not validate email.");
     }
@@ -585,6 +591,11 @@ export default function FreightStudentEnroll({
 
       {step === 3 && stripePromise ? (
         <div className="mx-auto mt-12 max-w-lg rounded-3xl border border-[var(--color-accent)]/30 bg-[#071021] px-8 py-10">
+          {linkExistingAccount ? (
+            <p className="mb-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3 py-2 text-xs text-[var(--color-muted)]">
+              This email already has an Alpha account. After payment, your Academy access attaches when the password you use matches that account (same as the password you entered above).
+            </p>
+          ) : null}
           <h3 className="text-lg font-bold text-[var(--color-text)]">
             Secure checkout ({plan})
           </h3>

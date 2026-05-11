@@ -161,7 +161,12 @@ export function FreightLoginForm() {
         setLoading(false);
         return;
       }
-      if (role === "dispatcher" && !profile?.role) {
+      if (
+        role === "dispatcher" &&
+        !superAdmin &&
+        isAllowedDispatcherEmail(emailSignedIn) &&
+        (!profile?.role || profile.role === "client")
+      ) {
         const ensureRes = await fetch("/api/freight/dispatcher/ensure-profile", {
           method: "POST",
         });
@@ -182,6 +187,22 @@ export function FreightLoginForm() {
         notifyAuthActivityClient("login");
         router.replace("/freight/carrier/register");
         router.refresh();
+        setLoading(false);
+        return;
+      }
+
+      if (role === "student" && profile?.role === "client") {
+        notifyAuthActivityClient("login");
+        router.replace("/freight/student/enroll");
+        router.refresh();
+        setLoading(false);
+        return;
+      }
+
+      if (role === "driver" && profile?.role === "client") {
+        setError(
+          "This account isn’t set up as a driver yet. Open the invitation link from your email and finish signup with the same email and password.",
+        );
         setLoading(false);
         return;
       }

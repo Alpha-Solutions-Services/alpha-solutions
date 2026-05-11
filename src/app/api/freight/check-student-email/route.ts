@@ -6,7 +6,7 @@ const bodySchema = z.object({
   email: z.string().email(),
 });
 
-/** Pre-flight before Stripe: block duplicate enrollment attempts. */
+/** Pre-flight before Stripe: report whether auth already has this email (UI may link enrollment via complete-enrollment). */
 export async function POST(req: NextRequest) {
   try {
     const parsed = bodySchema.safeParse(await req.json());
