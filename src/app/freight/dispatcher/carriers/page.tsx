@@ -1,16 +1,36 @@
 import type { Metadata } from "next";
 import { DispatcherCarrierReview } from "@/components/freight/DispatcherCarrierReview";
+import { DispatcherCarriersSheet } from "@/components/freight/DispatcherCarriersSheet";
 
 export const metadata: Metadata = {
-  title: "Carrier onboarding — Dispatcher",
+  title: "Carriers — Dispatcher",
 };
 
 export default function DispatcherCarriersPage() {
   return (
-    <main className="min-h-[70vh] bg-[var(--color-bg)] px-4 pb-24 pt-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-8 sm:px-8 sm:py-10 md:px-10">
-        <DispatcherCarrierReview />
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8">
+      <div>
+        <h1
+          className="text-2xl font-bold text-[var(--color-text)]"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Carriers
+        </h1>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">
+          Onboarding queue plus carriers from your Dispatch Sheet
+        </p>
       </div>
-    </main>
+
+      <section className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5 sm:p-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-accent)]">
+          Onboarding queue
+        </h2>
+        <div className="mt-6">
+          <DispatcherCarrierReview />
+        </div>
+      </section>
+
+      <DispatcherCarriersSheet />
+    </div>
   );
 }

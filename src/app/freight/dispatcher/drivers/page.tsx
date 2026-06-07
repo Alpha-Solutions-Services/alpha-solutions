@@ -17,15 +17,18 @@ export default async function DispatcherDriversPage() {
       .eq("role", "carrier")
       .eq("carrier_status", "verified")
       .order("company_name", { ascending: true });
-    carriers = ((data ?? []) as typeof carriers);
+    carriers = (data ?? []) as typeof carriers;
   }
 
   return (
-    <main className="min-h-[70vh] bg-[var(--color-bg)] px-4 pb-24 pt-12">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-8 sm:px-8 sm:py-10 md:px-10 md:py-12">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-border)] pb-8">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--color-text)]" style={{ fontFamily: "var(--font-display)" }}>
+            <h1
+              className="text-2xl font-bold text-[var(--color-text)]"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
               Driver invitations
             </h1>
             <p className="mt-2 text-sm text-[var(--color-muted)]">
@@ -35,9 +38,10 @@ export default async function DispatcherDriversPage() {
           <InviteDriverModal mode="dispatcher" carriers={carriers} />
         </div>
         <p className="mt-8 text-xs text-[var(--color-muted)]">
-          Driver responses appear on their carrier timelines — automate via Supabase Realtime subscriptions when ready.
+          Driver responses appear on their carrier timelines — automate via Supabase Realtime
+          subscriptions when ready.
         </p>
       </div>
-    </main>
+    </div>
   );
 }
