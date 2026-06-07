@@ -13,6 +13,7 @@ import {
   listMonthTabOptions,
   resolveActiveMonthTab,
 } from "./dispatch-sheet-tabs";
+import { buildTopBookers } from "./carrier-sheet";
 
 const SHEET_HEADERS = [
   "SR#",
@@ -432,11 +433,20 @@ export function buildDashboardFromRows(
     carriers: Array.from(carriersMap.values()),
     invoices,
     quick_actions: [
-      { name: "Add Carrier", icon: "user-plus", href: "/freight/dispatcher/carriers" },
+      { name: "Add Carrier", icon: "user-plus", href: "/freight/dispatcher/carriers?action=add" },
       { name: "Book Load", icon: "truck", href: "/freight/dispatcher/loads?action=book" },
       { name: "Generate Invoice", icon: "file", href: "/freight/dispatcher/invoices?action=generate" },
-      { name: "Invite Driver", icon: "upload", href: "/freight/dispatcher/drivers" },
+      { name: "Manage Drivers", icon: "upload", href: "/freight/dispatcher/drivers" },
     ],
+    top_bookers: buildTopBookers(
+      loads.map((l) => ({
+        booked_by: l.booked_by,
+        rate: l.rate,
+        dispatch_fee: l.dispatch_fee,
+      })),
+    ),
+    carrier_roster: [],
+    driver_roster: [],
     footer_stats: {
       carriers_managed: carriersMap.size,
       revenue_this_week: revenueThisWeek,
@@ -452,6 +462,7 @@ export function buildDashboardFromRows(
       workbook_name: "Alpha Freight Network Website",
       active_tab: opts?.activeTab ?? resolveActiveMonthTab(),
       available_tabs: listMonthTabOptions(),
+      carrier_sheet_connected: false,
     },
   };
 }

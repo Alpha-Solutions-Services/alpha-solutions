@@ -15,6 +15,7 @@ import {
 import { FleetDonutChart, RevenueLineChart } from "@/components/freight/DispatchCharts";
 import { DispatchLoadsTable } from "@/components/freight/DispatchLoadsTable";
 import { DispatchMonthSelector } from "@/components/freight/DispatchMonthSelector";
+import { TopBookersPanel } from "@/components/freight/TopBookersPanel";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
 import type { SummaryCard } from "@/lib/freight/dispatch-dashboard-types";
 
@@ -202,13 +203,17 @@ export function DispatcherDashboardClient() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <TopBookersPanel bookers={data.top_bookers} compact />
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5 lg:col-span-2">
           <h3 className="text-sm font-semibold text-[var(--color-text)]">Fleet overview</h3>
           <div className="mt-4">
             <FleetDonutChart fleet={data.fleet_overview} />
           </div>
         </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5">
           <h3 className="text-sm font-semibold text-[var(--color-text)]">Revenue trend</h3>
           <p className="mt-1 text-xs text-[var(--color-muted)]">This week (RC invoice)</p>

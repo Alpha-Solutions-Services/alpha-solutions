@@ -1,6 +1,7 @@
 "use client";
 
 import { FleetDonutChart, RevenueLineChart } from "@/components/freight/DispatchCharts";
+import { TopBookersPanel } from "@/components/freight/TopBookersPanel";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
 
 function formatUsd(n: number) {
@@ -48,6 +49,7 @@ export function DispatcherReportsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <TopBookersPanel bookers={data.top_bookers} />
         <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5">
           <h2 className="text-sm font-semibold">Fleet distribution</h2>
           <div className="mt-4">

@@ -1,10 +1,28 @@
 import type { DispatchDashboardData } from "./dispatch-dashboard-types";
+import { buildTopBookers } from "./carrier-sheet";
 import {
   buildDashboardFromRows,
   fetchDispatchSheetCsv,
   parseDispatchCsv,
 } from "./dispatch-sheet";
+import { loadCarrierRoster, loadDriverRoster } from "./dispatch-roster";
 import { createClient } from "@/lib/supabase/server";
+
+function attachLoadsToRoster(
+  roster: DispatchDashboardData["carrier_roster"],
+  loads: DispatchDashboardData["loads"],
+): DispatchDashboardData["carrier_roster"] {
+  const counts = new Map<string, number>();
+  for (const load of loads) {
+    const key = load.carrier.trim().toLowerCase();
+    if (!key || key === "—") continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return roster.map((c) => ({
+    ...c,
+    loadsBooked: counts.get(c.companyName.toLowerCase()) ?? 0,
+  }));
+}
 
 export async function buildDispatchDashboard(
   requestedTab?: string | null,
@@ -41,6 +59,11 @@ export async function buildDispatchDashboard(
     }
   }
 
+  const [carrierRosterResult, driverRoster] = await Promise.all([
+    loadCarrierRoster(),
+    loadDriverRoster(),
+  ]);
+
   try {
     const { csv, source, activeTab } = await fetchDispatchSheetCsv(requestedTab);
     if (csv) {
@@ -52,6 +75,20 @@ export async function buildDispatchDashboard(
         activeTab,
       });
 
+      dashboard.top_bookers = buildTopBookers(
+        dashboard.loads.map((l) => ({
+          booked_by: l.booked_by,
+          rate: l.rate,
+          dispatch_fee: l.dispatch_fee,
+        })),
+      );
+      dashboard.carrier_roster = attachLoadsToRoster(
+        carrierRosterResult.carriers,
+        dashboard.loads,
+      );
+      dashboard.driver_roster = driverRoster;
+      dashboard.sheet_meta.carrier_sheet_connected = carrierRosterResult.sheetConnected;
+
       const mergedCarriers = [...dashboard.carriers];
       for (const sc of supabaseCarriers) {
         if (!mergedCarriers.some((c) => c.company_name === sc.company_name)) {
@@ -61,7 +98,7 @@ export async function buildDispatchDashboard(
       dashboard.carriers = mergedCarriers;
       dashboard.footer_stats.carriers_managed = Math.max(
         dashboard.footer_stats.carriers_managed,
-        mergedCarriers.length,
+        dashboard.carrier_roster.length,
       );
       return dashboard;
     }
@@ -75,6 +112,10 @@ export async function buildDispatchDashboard(
     sheetSource: "not-configured",
     activeTab: requestedTab ?? "",
   });
+  empty.top_bookers = [];
+  empty.carrier_roster = carrierRosterResult.carriers;
+  empty.driver_roster = driverRoster;
+  empty.sheet_meta.carrier_sheet_connected = carrierRosterResult.sheetConnected;
   empty.carriers = supabaseCarriers;
   empty.footer_stats.carriers_managed = supabaseCarriers.length;
   empty.alerts.unshift({

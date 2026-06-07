@@ -111,6 +111,43 @@ export type QuickAction = {
   href: string;
 };
 
+export type TopBooker = {
+  name: string;
+  loads: number;
+  revenue: number;
+  commission: number;
+};
+
+export type CarrierRosterItem = {
+  id: string;
+  source: "sheet" | "dispatcher" | "supabase";
+  active: boolean;
+  mc: string;
+  mcAge: string;
+  contactName: string;
+  phone: string;
+  companyName: string;
+  truck: string;
+  email: string;
+  address: string;
+  dispatchReview: string;
+  status: string;
+  salesReview: string;
+  salesAttention: string;
+  documentLink: string;
+  loadsBooked?: number;
+};
+
+export type DriverRosterItem = {
+  id: string;
+  driverName: string;
+  driverEmail: string;
+  driverPhone: string;
+  carrierCompanyName: string;
+  carrierProfileId: string | null;
+  notes: string;
+};
+
 export type DispatchDashboardData = {
   company: { name: string; logo: string };
   summary_cards: SummaryCard[];
@@ -121,6 +158,9 @@ export type DispatchDashboardData = {
   carriers: DashboardCarrier[];
   invoices: DashboardInvoice[];
   quick_actions: QuickAction[];
+  top_bookers: TopBooker[];
+  carrier_roster: CarrierRosterItem[];
+  driver_roster: DriverRosterItem[];
   footer_stats: {
     carriers_managed: number;
     revenue_this_week: number;
@@ -136,5 +176,6 @@ export type DispatchDashboardData = {
     workbook_name: string;
     active_tab: string;
     available_tabs: string[];
+    carrier_sheet_connected: boolean;
   };
 };
