@@ -75,11 +75,15 @@ export async function loadCarrierRoster(): Promise<{
 
   const sb = getServiceRoleClient();
   if (sb) {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("dispatch_carrier_roster")
       .select("*")
       .eq("active", true)
       .order("company_name", { ascending: true });
+
+    if (error) {
+      console.warn("[carrier-roster] DB read skipped:", error.message);
+    }
 
     for (const row of (data ?? []) as DbCarrier[]) {
       const entry = dbToEntry(row);
@@ -112,11 +116,16 @@ export async function loadDriverRoster(): Promise<DriverRosterEntry[]> {
   const sb = getServiceRoleClient();
   if (!sb) return [];
 
-  const { data } = await sb
+  const { data, error } = await sb
     .from("dispatch_driver_roster")
     .select("*")
     .eq("active", true)
     .order("driver_name", { ascending: true });
+
+  if (error) {
+    console.warn("[driver-roster] DB read skipped:", error.message);
+    return [];
+  }
 
   return ((data ?? []) as {
     id: string;

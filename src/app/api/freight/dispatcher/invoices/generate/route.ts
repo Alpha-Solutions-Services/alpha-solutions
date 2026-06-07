@@ -108,6 +108,16 @@ export async function POST(req: NextRequest) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
-    return NextResponse.json({ error: "Failed to generate invoices" }, { status: 500 });
+    const message =
+      e instanceof Error ? e.message : "Failed to generate invoices";
+    return NextResponse.json(
+      {
+        error:
+          message.includes("ENOENT") || message.includes("Helvetica")
+            ? "PDF engine failed on server — redeploy with latest build"
+            : message || "Failed to generate invoices",
+      },
+      { status: 500 },
+    );
   }
 }

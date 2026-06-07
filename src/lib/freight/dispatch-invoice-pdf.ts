@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 import type { CarrierDispatchInvoice, InvoiceIssuer } from "./dispatch-invoice";
 import { formatInvoiceDate } from "./dispatch-invoice";
 
@@ -9,126 +9,241 @@ function formatMoney(n: number): string {
   }).format(n);
 }
 
-function collectPdfBuffer(doc: InstanceType<typeof PDFDocument>): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-    doc.end();
-  });
-}
-
 export async function renderCarrierInvoicePdf(
   invoice: CarrierDispatchInvoice,
   issuer: InvoiceIssuer,
 ): Promise<Buffer> {
-  const doc = new PDFDocument({ margin: 50, size: "LETTER" });
-  const bufferPromise = collectPdfBuffer(doc);
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([612, 792]);
+  const { width, height } = page.getSize();
+  const margin = 50;
+  const contentWidth = width - margin * 2;
 
-  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const left = doc.page.margins.left;
+  const regular = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const dark = rgb(0.07, 0.07, 0.07);
+  const muted = rgb(0.4, 0.4, 0.4);
+  const accent = rgb(0.15, 0.39, 0.92);
 
-  doc.fontSize(11).fillColor("#111111");
-  doc.text(issuer.contactName, left, 50);
-  doc.text(issuer.companyName);
-  doc.text(issuer.addressLine1);
-  doc.text(issuer.addressLine2);
+  let y = height - margin;
+
+  const draw = (
+    text: string,
+    x: number,
+    size: number,
+    font = regular,
+    color = dark,
+  ) => {
+    page.drawText(text, { x, y, size, font, color });
+  };
+
+  draw(issuer.contactName, margin, 11, regular, dark);
+  y -= 14;
+  draw(issuer.companyName, margin, 11);
+  y -= 14;
+  draw(issuer.addressLine1, margin, 11);
+  y -= 14;
+  draw(issuer.addressLine2, margin, 11);
 
   const invoiceLabel = `# ${invoice.invoiceNumber} ${invoice.carrierName}`;
-  doc.fontSize(11).text(invoiceLabel, left, 50, { align: "right", width: pageWidth });
-  doc.text(formatInvoiceDate(invoice.invoiceDate), { align: "right", width: pageWidth });
+  const dateStr = formatInvoiceDate(invoice.invoiceDate);
+  page.drawText(invoiceLabel, {
+    x: margin,
+    y: height - margin,
+    size: 11,
+    font: regular,
+    color: dark,
+    maxWidth: contentWidth,
+  });
+  const dateWidth = regular.widthOfTextAtSize(dateStr, 11);
+  page.drawText(dateStr, {
+    x: width - margin - dateWidth,
+    y: height - margin - 14,
+    size: 11,
+    font: regular,
+    color: dark,
+  });
 
-  doc.moveDown(2);
-  doc.fontSize(22).text("Invoice", left);
+  y -= 36;
+  draw("Invoice", margin, 22, bold);
 
-  const billTop = doc.y + 16;
-  const colWidth = pageWidth / 2 - 10;
+  y -= 28;
+  const billTop = y;
+  draw("BILL TO", margin, 10, regular, muted);
+  page.drawText("PAYMENT", {
+    x: margin + contentWidth / 2 + 10,
+    y: billTop,
+    size: 10,
+    font: regular,
+    color: muted,
+  });
 
-  doc.fontSize(10).fillColor("#666666").text("BILL TO", left, billTop);
-  doc.fillColor("#111111").fontSize(11);
-  let billY = billTop + 14;
+  y -= 16;
+  let billY = y;
   if (invoice.billTo.contactName) {
-    doc.text(invoice.billTo.contactName, left, billY);
-    billY += 14;
+    draw(invoice.billTo.contactName, margin, 11);
+    billY -= 14;
+    y = billY;
   }
-  doc.text(invoice.billTo.companyName, left, billY);
-  billY += 14;
+  draw(invoice.billTo.companyName, margin, 11, bold);
+  billY -= 14;
+  y = billY;
   if (invoice.billTo.addressLine) {
-    doc.text(invoice.billTo.addressLine, left, billY, { width: colWidth });
-    billY += 14;
+    draw(invoice.billTo.addressLine, margin, 11);
+    billY -= 14;
+    y = billY;
   }
   if (invoice.billTo.email) {
-    doc.text(invoice.billTo.email, left, billY);
-    billY += 14;
+    draw(invoice.billTo.email, margin, 11);
+    billY -= 14;
+    y = billY;
   }
   if (invoice.billTo.phone) {
-    doc.text(invoice.billTo.phone, left, billY);
+    draw(invoice.billTo.phone, margin, 11);
+    billY -= 14;
+    y = billY;
   }
 
-  const payLeft = left + colWidth + 20;
-  doc.fillColor("#666666").fontSize(10).text("PAYMENT", payLeft, billTop);
-  doc.fillColor("#111111").fontSize(11).text(
-    `Due Date: ${formatInvoiceDate(invoice.dueDate)}`,
-    payLeft,
-    billTop + 14,
-  );
+  page.drawText(`Due Date: ${formatInvoiceDate(invoice.dueDate)}`, {
+    x: margin + contentWidth / 2 + 10,
+    y: billTop - 16,
+    size: 11,
+    font: regular,
+    color: dark,
+  });
 
-  const tableTop = Math.max(doc.y, billY) + 28;
-  const colItem = left;
-  const colQty = left + pageWidth * 0.62;
-  const colRate = left + pageWidth * 0.74;
-  const colAmount = left + pageWidth * 0.86;
+  y = Math.min(y, billY) - 28;
+  const colItem = margin;
+  const colQty = margin + contentWidth * 0.62;
+  const colRate = margin + contentWidth * 0.74;
+  const colAmount = margin + contentWidth * 0.86;
 
-  doc.fontSize(9).fillColor("#666666");
-  doc.text("ITEM", colItem, tableTop);
-  doc.text("QUANTITY", colQty, tableTop);
-  doc.text("RATE", colRate, tableTop);
-  doc.text("AMOUNT", colAmount, tableTop);
+  page.drawText("ITEM", { x: colItem, y, size: 9, font: bold, color: muted });
+  page.drawText("QUANTITY", { x: colQty, y, size: 9, font: bold, color: muted });
+  page.drawText("RATE", { x: colRate, y, size: 9, font: bold, color: muted });
+  page.drawText("AMOUNT", { x: colAmount, y, size: 9, font: bold, color: muted });
 
-  doc.moveTo(left, tableTop + 14).lineTo(left + pageWidth, tableTop + 14).stroke("#cccccc");
+  y -= 10;
+  page.drawLine({
+    start: { x: margin, y },
+    end: { x: width - margin, y },
+    thickness: 0.5,
+    color: rgb(0.8, 0.8, 0.8),
+  });
 
-  let rowY = tableTop + 22;
-  doc.fillColor("#111111").fontSize(9);
-
+  y -= 16;
   for (const item of invoice.lineItems) {
-    const itemHeight = doc.heightOfString(item.description, { width: pageWidth * 0.58 });
-    doc.text(item.description, colItem, rowY, { width: pageWidth * 0.58 });
-    doc.text(String(item.quantity), colQty, rowY);
-    doc.text(formatMoney(item.rate), colRate, rowY);
-    doc.text(formatMoney(item.amount), colAmount, rowY);
-    rowY += Math.max(itemHeight, 14) + 8;
+    const descLines = wrapText(item.description, regular, 9, contentWidth * 0.58);
+    for (let i = 0; i < descLines.length; i++) {
+      page.drawText(descLines[i], {
+        x: colItem,
+        y: y - i * 12,
+        size: 9,
+        font: regular,
+        color: dark,
+      });
+    }
+    const rowHeight = Math.max(descLines.length * 12, 14);
+    page.drawText(String(item.quantity), {
+      x: colQty,
+      y,
+      size: 9,
+      font: regular,
+      color: dark,
+    });
+    page.drawText(formatMoney(item.rate), {
+      x: colRate,
+      y,
+      size: 9,
+      font: regular,
+      color: dark,
+    });
+    page.drawText(formatMoney(item.amount), {
+      x: colAmount,
+      y,
+      size: 9,
+      font: regular,
+      color: dark,
+    });
+    y -= rowHeight + 8;
 
-    if (rowY > doc.page.height - 160) {
-      doc.addPage();
-      rowY = doc.page.margins.top;
+    if (y < 120) break;
+  }
+
+  y -= 8;
+  page.drawLine({
+    start: { x: margin, y },
+    end: { x: width - margin, y },
+    thickness: 0.5,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+  y -= 16;
+  page.drawText("Total", { x: colRate - 20, y, size: 11, font: bold, color: dark });
+  page.drawText(formatMoney(invoice.total), {
+    x: colAmount,
+    y,
+    size: 11,
+    font: bold,
+    color: dark,
+  });
+
+  y -= 36;
+  page.drawText("Zelle", { x: margin, y, size: 11, font: bold, color: dark });
+  y -= 16;
+  page.drawText(`Number : ${issuer.zelleNumber}`, {
+    x: margin,
+    y,
+    size: 10,
+    font: regular,
+    color: dark,
+  });
+  y -= 14;
+  page.drawText(`Name : ${issuer.zelleName}`, {
+    x: margin,
+    y,
+    size: 10,
+    font: regular,
+    color: dark,
+  });
+
+  y -= 32;
+  page.drawText("TERMS", { x: margin, y, size: 10, font: bold, color: muted });
+  y -= 14;
+  page.drawText(`Thank you for choosing ${issuer.companyName}.`, {
+    x: margin,
+    y,
+    size: 10,
+    font: regular,
+    color: dark,
+    maxWidth: contentWidth,
+  });
+  y -= 14;
+  page.drawText(issuer.website, {
+    x: margin,
+    y,
+    size: 10,
+    font: regular,
+    color: accent,
+  });
+
+  const bytes = await pdf.save();
+  return Buffer.from(bytes);
+}
+
+function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(test, size) <= maxWidth) {
+      line = test;
+    } else {
+      if (line) lines.push(line);
+      line = word;
     }
   }
-
-  rowY += 8;
-  doc.moveTo(left, rowY).lineTo(left + pageWidth, rowY).stroke("#cccccc");
-  rowY += 12;
-  doc.fontSize(11).text("Total", colRate - 20, rowY);
-  doc.text(formatMoney(invoice.total), colAmount, rowY);
-
-  rowY += 36;
-  doc.fontSize(11).text("Zelle", left, rowY);
-  rowY += 16;
-  doc.fontSize(10).text(`Number : ${issuer.zelleNumber}`, left, rowY);
-  rowY += 14;
-  doc.text(`Name : ${issuer.zelleName}`, left, rowY);
-
-  rowY += 32;
-  doc.fontSize(10).fillColor("#666666").text("TERMS", left, rowY);
-  rowY += 14;
-  doc.fillColor("#111111").text(
-    `Thank you for choosing ${issuer.companyName}.`,
-    left,
-    rowY,
-    { width: pageWidth },
-  );
-  rowY += 14;
-  doc.fillColor("#2563eb").text(issuer.website, left, rowY, { link: issuer.website });
-
-  return bufferPromise;
+  if (line) lines.push(line);
+  return lines.length ? lines : [text];
 }

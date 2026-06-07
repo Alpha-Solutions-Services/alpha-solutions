@@ -108,9 +108,17 @@ export function buildLineItemDescription(load: DashboardLoad): string {
   return parts.join(", ");
 }
 
+/** Company name on sheet, or Booked By as fallback for grouping. */
+export function resolveCarrierName(load: DashboardLoad): string {
+  const company = load.carrier?.trim();
+  if (company && company !== "—") return company;
+  const booked = load.booked_by?.trim();
+  if (booked && booked !== "—") return booked;
+  return "";
+}
+
 export function isInvoiceableLoad(load: DashboardLoad): boolean {
-  const carrier = load.carrier?.trim();
-  if (!carrier || carrier === "—") return false;
+  if (!resolveCarrierName(load)) return false;
 
   const fee = computeDispatchFee(load);
   const unpaid =
@@ -118,14 +126,14 @@ export function isInvoiceableLoad(load: DashboardLoad): boolean {
     load.invoice_status.toLowerCase() === "pending" ||
     load.balance > 0;
 
-  return fee > 0 || (unpaid && load.rate > 0);
+  return fee > 0 || load.dispatch_percent > 0 || unpaid || load.rate > 0;
 }
 
 export function groupLoadsByCarrier(loads: DashboardLoad[]): Map<string, DashboardLoad[]> {
   const map = new Map<string, DashboardLoad[]>();
 
   for (const load of loads.filter(isInvoiceableLoad)) {
-    const key = load.carrier.trim();
+    const key = resolveCarrierName(load);
     const list = map.get(key) ?? [];
     list.push(load);
     map.set(key, list);
@@ -178,7 +186,7 @@ export function buildCarrierInvoices(
     });
 
     const total = lineItems.reduce((s, li) => s + li.amount, 0);
-    if (total <= 0) continue;
+    if (lineItems.length === 0) continue;
 
     invoices.push({
       invoiceNumber,
