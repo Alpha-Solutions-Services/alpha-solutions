@@ -1,12 +1,46 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { CarrierDispatchInvoice, InvoiceIssuer } from "./dispatch-invoice";
 import { formatInvoiceDate } from "./dispatch-invoice";
+
+const LOGO_SIZE = 56;
 
 function formatMoney(n: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
   }).format(n);
+}
+
+async function loadLogoBytes(): Promise<Uint8Array | null> {
+  const candidates = [
+    path.join(process.cwd(), "public", "alpha-logo.png"),
+    path.join(process.cwd(), "alpha-solutions", "public", "alpha-logo.png"),
+  ];
+
+  for (const filePath of candidates) {
+    try {
+      return await fs.readFile(filePath);
+    } catch {
+      /* try next path */
+    }
+  }
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "https://www.alphasolutions.software";
+
+  try {
+    const res = await fetch(`${siteUrl}/alpha-logo.png`, { cache: "force-cache" });
+    if (res.ok) {
+      return new Uint8Array(await res.arrayBuffer());
+    }
+  } catch {
+    /* logo optional */
+  }
+
+  return null;
 }
 
 export async function renderCarrierInvoicePdf(
@@ -25,94 +59,170 @@ export async function renderCarrierInvoicePdf(
   const muted = rgb(0.4, 0.4, 0.4);
   const accent = rgb(0.15, 0.39, 0.92);
 
-  let y = height - margin;
+  const logoBytes = await loadLogoBytes();
+  let logoBottom = height - margin;
 
-  const draw = (
+  if (logoBytes) {
+    const logo = await pdf.embedPng(logoBytes);
+    const scale = LOGO_SIZE / Math.max(logo.width, logo.height);
+    const logoW = logo.width * scale;
+    const logoH = logo.height * scale;
+    const logoY = height - margin - logoH;
+
+    page.drawImage(logo, {
+      x: margin,
+      y: logoY,
+      width: logoW,
+      height: logoH,
+    });
+
+    logoBottom = logoY;
+  }
+
+  const textX = logoBytes ? margin + LOGO_SIZE + 14 : margin;
+  let textY = height - margin - 11;
+
+  const drawAt = (
     text: string,
     x: number,
+    yPos: number,
     size: number,
     font = regular,
     color = dark,
   ) => {
-    page.drawText(text, { x, y, size, font, color });
+    page.drawText(text, { x, y: yPos, size, font, color });
   };
 
-  draw(issuer.contactName, margin, 11, regular, dark);
-  y -= 14;
-  draw(issuer.companyName, margin, 11);
-  y -= 14;
-  draw(issuer.addressLine1, margin, 11);
-  y -= 14;
-  draw(issuer.addressLine2, margin, 11);
+  drawAt(issuer.contactName, textX, textY, 11);
+  textY -= 14;
+  drawAt(issuer.companyName, textX, textY, 11);
+  textY -= 14;
+  drawAt(issuer.addressLine1, textX, textY, 11);
+  textY -= 14;
+  drawAt(issuer.addressLine2, textX, textY, 11);
+
+  let y = Math.min(textY - 20, logoBottom - 20);
 
   const invoiceLabel = `# ${invoice.invoiceNumber} ${invoice.carrierName}`;
   const dateStr = formatInvoiceDate(invoice.invoiceDate);
+  const dateWidth = regular.widthOfTextAtSize(dateStr, 11);
+
   page.drawText(invoiceLabel, {
     x: margin,
-    y: height - margin,
+    y,
     size: 11,
+    font: regular,
+    color: dark,
+    maxWidth: contentWidth - dateWidth - 16,
+  });
+  page.drawText(dateStr, {
+    x: width - margin - dateWidth,
+    y,
+    size: 11,
+    font: regular,
+    color: dark,
+  });
+
+  y -= 28;
+  drawAt("Invoice", margin, y, 22, bold);
+
+  y -= 28;
+  const billTop = y;
+  drawAt("BILL TO", margin, billTop, 10, regular, muted);
+  drawAt("PAYMENT", margin + contentWidth / 2 + 10, billTop, 10, regular, muted);
+
+  y -= 16;
+  let billY = y;
+
+  if (invoice.billTo.contactName) {
+    drawAt(invoice.billTo.contactName, margin, billY, 11);
+    billY -= 14;
+  }
+  drawAt(invoice.billTo.companyName, margin, billY, 11, bold);
+  billY -= 14;
+
+  if (invoice.billTo.addressLine) {
+    for (const line of wrapText(invoice.billTo.addressLine, regular, 11, contentWidth / 2 - 10)) {
+      drawAt(line, margin, billY, 11);
+      billY -= 14;
+    }
+  }
+  if (invoice.billTo.email) {
+    drawAt(invoice.billTo.email, margin, billY, 11);
+    billY -= 14;
+  }
+  if (invoice.billTo.phone) {
+    drawAt(invoice.billTo.phone, margin, billY, 11);
+    billY -= 14;
+  }
+
+  drawAt(
+    `Due Date: ${formatInvoiceDate(invoice.dueDate)}`,
+    margin + contentWidth / 2 + 10,
+    billTop - 16,
+    11,
+  );
+
+  y = Math.min(billY, billTop - 32) - 28;
+  y = drawLineItemsTable(page, invoice, {
+    y,
+    margin,
+    width,
+    contentWidth,
+    regular,
+    bold,
+    dark,
+    muted,
+  });
+
+  y -= 36;
+  drawAt("Zelle", margin, y, 11, bold);
+  y -= 16;
+  drawAt(`Number : ${issuer.zelleNumber}`, margin, y, 10);
+  y -= 14;
+  drawAt(`Name : ${issuer.zelleName}`, margin, y, 10);
+
+  y -= 32;
+  drawAt("TERMS", margin, y, 10, bold, muted);
+  y -= 14;
+  page.drawText(`Thank you for choosing ${issuer.companyName}.`, {
+    x: margin,
+    y,
+    size: 10,
     font: regular,
     color: dark,
     maxWidth: contentWidth,
   });
-  const dateWidth = regular.widthOfTextAtSize(dateStr, 11);
-  page.drawText(dateStr, {
-    x: width - margin - dateWidth,
-    y: height - margin - 14,
-    size: 11,
-    font: regular,
-    color: dark,
-  });
-
-  y -= 36;
-  draw("Invoice", margin, 22, bold);
-
-  y -= 28;
-  const billTop = y;
-  draw("BILL TO", margin, 10, regular, muted);
-  page.drawText("PAYMENT", {
-    x: margin + contentWidth / 2 + 10,
-    y: billTop,
+  y -= 14;
+  page.drawText(issuer.website, {
+    x: margin,
+    y,
     size: 10,
     font: regular,
-    color: muted,
+    color: accent,
   });
 
-  y -= 16;
-  let billY = y;
-  if (invoice.billTo.contactName) {
-    draw(invoice.billTo.contactName, margin, 11);
-    billY -= 14;
-    y = billY;
-  }
-  draw(invoice.billTo.companyName, margin, 11, bold);
-  billY -= 14;
-  y = billY;
-  if (invoice.billTo.addressLine) {
-    draw(invoice.billTo.addressLine, margin, 11);
-    billY -= 14;
-    y = billY;
-  }
-  if (invoice.billTo.email) {
-    draw(invoice.billTo.email, margin, 11);
-    billY -= 14;
-    y = billY;
-  }
-  if (invoice.billTo.phone) {
-    draw(invoice.billTo.phone, margin, 11);
-    billY -= 14;
-    y = billY;
-  }
+  const bytes = await pdf.save();
+  return Buffer.from(bytes);
+}
 
-  page.drawText(`Due Date: ${formatInvoiceDate(invoice.dueDate)}`, {
-    x: margin + contentWidth / 2 + 10,
-    y: billTop - 16,
-    size: 11,
-    font: regular,
-    color: dark,
-  });
+function drawLineItemsTable(
+  page: PDFPage,
+  invoice: CarrierDispatchInvoice,
+  ctx: {
+    y: number;
+    margin: number;
+    width: number;
+    contentWidth: number;
+    regular: PDFFont;
+    bold: PDFFont;
+    dark: ReturnType<typeof rgb>;
+    muted: ReturnType<typeof rgb>;
+  },
+): number {
+  let { y } = ctx;
+  const { margin, width, contentWidth, regular, bold, dark, muted } = ctx;
 
-  y = Math.min(y, billY) - 28;
   const colItem = margin;
   const colQty = margin + contentWidth * 0.62;
   const colRate = margin + contentWidth * 0.74;
@@ -143,6 +253,7 @@ export async function renderCarrierInvoicePdf(
         color: dark,
       });
     }
+
     const rowHeight = Math.max(descLines.length * 12, 14);
     page.drawText(String(item.quantity), {
       x: colQty,
@@ -187,47 +298,7 @@ export async function renderCarrierInvoicePdf(
     color: dark,
   });
 
-  y -= 36;
-  page.drawText("Zelle", { x: margin, y, size: 11, font: bold, color: dark });
-  y -= 16;
-  page.drawText(`Number : ${issuer.zelleNumber}`, {
-    x: margin,
-    y,
-    size: 10,
-    font: regular,
-    color: dark,
-  });
-  y -= 14;
-  page.drawText(`Name : ${issuer.zelleName}`, {
-    x: margin,
-    y,
-    size: 10,
-    font: regular,
-    color: dark,
-  });
-
-  y -= 32;
-  page.drawText("TERMS", { x: margin, y, size: 10, font: bold, color: muted });
-  y -= 14;
-  page.drawText(`Thank you for choosing ${issuer.companyName}.`, {
-    x: margin,
-    y,
-    size: 10,
-    font: regular,
-    color: dark,
-    maxWidth: contentWidth,
-  });
-  y -= 14;
-  page.drawText(issuer.website, {
-    x: margin,
-    y,
-    size: 10,
-    font: regular,
-    color: accent,
-  });
-
-  const bytes = await pdf.save();
-  return Buffer.from(bytes);
+  return y;
 }
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
