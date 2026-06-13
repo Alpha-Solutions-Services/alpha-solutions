@@ -7,6 +7,19 @@ import type { InvoicePaymentDetails } from "./dispatch-invoice-payment";
 
 const LOGO_SIZE = 56;
 
+/** Invisible sheet chars (e.g. U+202C) break pdf-lib WinAnsi Helvetica encoding. */
+function sanitizePdfText(text: string): string {
+  return text
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, "")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/\u00A0/g, " ")
+    .replace(/[^\t\n\r\x20-\x7E]/g, "")
+    .trim();
+}
+
 function formatMoney(n: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -50,8 +63,8 @@ export async function renderCarrierInvoicePdf(
   payment: InvoicePaymentDetails,
 ): Promise<Buffer> {
   const pdf = await PDFDocument.create();
-  pdf.setTitle(`Invoice ${invoice.invoiceNumber} ${invoice.carrierName}`);
-  pdf.setAuthor(issuer.contactName);
+  pdf.setTitle(sanitizePdfText(`Invoice ${invoice.invoiceNumber} ${invoice.carrierName}`));
+  pdf.setAuthor(sanitizePdfText(issuer.contactName));
   const page = pdf.addPage([612, 792]);
   const { width, height } = page.getSize();
   const margin = 50;
@@ -94,7 +107,9 @@ export async function renderCarrierInvoicePdf(
     font = regular,
     color = dark,
   ) => {
-    page.drawText(text, { x, y: yPos, size, font, color });
+    const safe = sanitizePdfText(text);
+    if (!safe) return;
+    page.drawText(safe, { x, y: yPos, size, font, color });
   };
 
   drawAt(issuer.contactName, textX, textY, 11);
@@ -107,8 +122,8 @@ export async function renderCarrierInvoicePdf(
 
   let y = Math.min(textY - 20, logoBottom - 20);
 
-  const invoiceLabel = `# ${invoice.invoiceNumber} ${invoice.carrierName}`;
-  const dateStr = formatInvoiceDate(invoice.invoiceDate);
+  const invoiceLabel = sanitizePdfText(`# ${invoice.invoiceNumber} ${invoice.carrierName}`);
+  const dateStr = sanitizePdfText(formatInvoiceDate(invoice.invoiceDate));
   const dateWidth = regular.widthOfTextAtSize(dateStr, 11);
 
   page.drawText(invoiceLabel, {
@@ -202,7 +217,7 @@ export async function renderCarrierInvoicePdf(
   y -= 18;
   drawAt("TERMS", margin, y, 10, bold, muted);
   y -= 14;
-  page.drawText(`Thank you for choosing ${issuer.companyName}.`, {
+  page.drawText(sanitizePdfText(`Thank you for choosing ${issuer.companyName}.`), {
     x: margin,
     y,
     size: 10,
@@ -211,7 +226,7 @@ export async function renderCarrierInvoicePdf(
     maxWidth: contentWidth,
   });
   y -= 14;
-  page.drawText(issuer.website, {
+  page.drawText(sanitizePdfText(issuer.website), {
     x: margin,
     y,
     size: 10,
@@ -245,10 +260,10 @@ function drawLineItemsTable(
   const colRate = margin + contentWidth * 0.74;
   const colAmount = margin + contentWidth * 0.86;
 
-  page.drawText("ITEM", { x: colItem, y, size: 9, font: bold, color: muted });
-  page.drawText("QUANTITY", { x: colQty, y, size: 9, font: bold, color: muted });
-  page.drawText("RATE", { x: colRate, y, size: 9, font: bold, color: muted });
-  page.drawText("AMOUNT", { x: colAmount, y, size: 9, font: bold, color: muted });
+  page.drawText(sanitizePdfText("ITEM"), { x: colItem, y, size: 9, font: bold, color: muted });
+  page.drawText(sanitizePdfText("QUANTITY"), { x: colQty, y, size: 9, font: bold, color: muted });
+  page.drawText(sanitizePdfText("RATE"), { x: colRate, y, size: 9, font: bold, color: muted });
+  page.drawText(sanitizePdfText("AMOUNT"), { x: colAmount, y, size: 9, font: bold, color: muted });
 
   y -= 10;
   page.drawLine({
@@ -279,14 +294,14 @@ function drawLineItemsTable(
       font: regular,
       color: dark,
     });
-    page.drawText(formatMoney(item.rate), {
+    page.drawText(sanitizePdfText(formatMoney(item.rate)), {
       x: colRate,
       y,
       size: 9,
       font: regular,
       color: dark,
     });
-    page.drawText(formatMoney(item.amount), {
+    page.drawText(sanitizePdfText(formatMoney(item.amount)), {
       x: colAmount,
       y,
       size: 9,
@@ -306,8 +321,8 @@ function drawLineItemsTable(
     color: rgb(0.8, 0.8, 0.8),
   });
   y -= 16;
-  page.drawText("Total", { x: colRate - 20, y, size: 11, font: bold, color: dark });
-  page.drawText(formatMoney(invoice.total), {
+  page.drawText(sanitizePdfText("Total"), { x: colRate - 20, y, size: 11, font: bold, color: dark });
+  page.drawText(sanitizePdfText(formatMoney(invoice.total)), {
     x: colAmount,
     y,
     size: 11,
@@ -319,7 +334,10 @@ function drawLineItemsTable(
 }
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const words = text.split(/\s+/);
+  const clean = sanitizePdfText(text);
+  if (!clean) return [""];
+
+  const words = clean.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let line = "";
 
@@ -333,5 +351,5 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
     }
   }
   if (line) lines.push(line);
-  return lines.length ? lines : [text];
+  return lines.length ? lines : [clean];
 }
