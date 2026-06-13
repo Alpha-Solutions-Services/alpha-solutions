@@ -1,4 +1,5 @@
 import type { DispatchDashboardData } from "./dispatch-dashboard-types";
+import { enrichLoadsWithCarrierRoster } from "./carrier-contact";
 import { buildTopBookers } from "./carrier-sheet";
 import {
   buildDashboardFromRows,
@@ -74,6 +75,11 @@ export async function buildDispatchDashboard(
         sheetSource: source,
         activeTab,
       });
+
+      dashboard.loads = enrichLoadsWithCarrierRoster(
+        dashboard.loads,
+        carrierRosterResult.carriers,
+      );
 
       dashboard.top_bookers = buildTopBookers(
         dashboard.loads.map((l) => ({

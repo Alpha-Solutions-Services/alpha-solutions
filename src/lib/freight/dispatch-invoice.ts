@@ -1,4 +1,10 @@
+import type { CarrierRosterEntry } from "./carrier-sheet";
 import type { DashboardLoad } from "./dispatch-dashboard-types";
+import {
+  buildCarrierContactIndex,
+  lookupCarrierContact,
+  resolveCarrierEmail,
+} from "./carrier-contact";
 
 export type InvoiceIssuer = {
   contactName: string;
@@ -182,12 +188,15 @@ export function buildCarrierInvoices(
     carriers?: string[];
     invoiceDate?: Date;
     startNumber?: number;
+    carrierRoster?: CarrierRosterEntry[];
   },
 ): CarrierDispatchInvoice[] {
   const grouped = groupLoadsByCarrier(loads);
   const invoiceDate = opts?.invoiceDate ?? getInvoiceFriday();
   const dueDate = invoiceDate;
   let invoiceNumber = opts?.startNumber ?? 1;
+
+  const rosterIndex = buildCarrierContactIndex(opts?.carrierRoster ?? []);
 
   const carrierFilter = opts?.carriers?.map((c) => c.trim().toLowerCase());
   const invoices: CarrierDispatchInvoice[] = [];
@@ -201,6 +210,8 @@ export function buildCarrierInvoices(
 
     const carrierLoads = grouped.get(carrierName)!;
     const first = carrierLoads[0];
+    const rosterEntry = lookupCarrierContact(rosterIndex, carrierName);
+    const carrierEmail = resolveCarrierEmail(carrierLoads, rosterIndex);
 
     const lineItems: InvoiceLineItem[] = carrierLoads.map((load) => {
       const amount = computeDispatchFee(load);
@@ -225,11 +236,18 @@ export function buildCarrierInvoices(
       invoiceDate,
       dueDate,
       billTo: {
-        contactName: first.broker_agent !== "—" ? first.broker_agent : "",
+        contactName:
+          first.broker_agent !== "—"
+            ? first.broker_agent
+            : rosterEntry?.contactName ?? "",
         companyName: carrierName,
-        addressLine: first.load_details !== "—" ? first.load_details : "",
-        email: first.email !== "—" ? first.email : "",
-        phone: first.phone !== "—" ? first.phone : "",
+        addressLine:
+          first.load_details !== "—"
+            ? first.load_details
+            : rosterEntry?.address ?? "",
+        email: carrierEmail,
+        phone:
+          first.phone !== "—" ? first.phone : rosterEntry?.phone ?? "",
       },
       lineItems,
       total,

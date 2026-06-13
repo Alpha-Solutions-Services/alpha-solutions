@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     const invoices = buildCarrierInvoices(loads, {
       carriers: body.carriers,
       invoiceDate,
+      carrierRoster: dashboard.carrier_roster,
     });
 
     if (invoices.length === 0) {

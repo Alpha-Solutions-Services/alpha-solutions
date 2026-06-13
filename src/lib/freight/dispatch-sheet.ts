@@ -91,13 +91,26 @@ function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function rowFromCells(cells: string[]): DispatchSheetRow | null {
-  const padded = [...cells];
-  while (padded.length < SHEET_HEADERS.length) padded.push("");
+function cellAt(cells: string[], index: number | undefined): string {
+  if (index === undefined || index < 0) return "";
+  return cells[index]?.trim() ?? "";
+}
 
-  const sr = padded[0]?.trim() ?? "";
-  const company = padded[4]?.trim() ?? "";
-  const loadNum = padded[10]?.trim() ?? "";
+
+function rowFromCells(cells: string[], columnIndex?: Map<string, number>): DispatchSheetRow | null {
+  const col = (names: string[], fallback: number) => {
+    if (columnIndex) {
+      for (const name of names) {
+        const idx = columnIndex.get(normalizeHeader(name));
+        if (idx !== undefined) return cellAt(cells, idx);
+      }
+    }
+    return cellAt(cells, fallback);
+  };
+
+  const sr = col(["sr#", "sr"], 0);
+  const company = col(["company name", "company"], 4);
+  const loadNum = col(["load #", "load number", "load no"], 10);
 
   const joined = cells.join(" ").toUpperCase();
   if (joined.includes("TOTAL MILES") || joined.includes("TOTAL LOAD AMOUNT")) return null;
@@ -106,32 +119,32 @@ function rowFromCells(cells: string[]): DispatchSheetRow | null {
 
   return {
     sr,
-    bookedBy: padded[1]?.trim() ?? "",
-    rcDate: padded[2]?.trim() ?? "",
-    truckTrailer: padded[3]?.trim() ?? "",
+    bookedBy: col(["booked by"], 1),
+    rcDate: col(["rc date"], 2),
+    truckTrailer: col(["truck & trailer", "truck and trailer"], 3),
     companyName: company,
-    broker: padded[5]?.trim() ?? "",
-    loadDetails: padded[6]?.trim() ?? "",
-    pickupDateTime: padded[7]?.trim() ?? "",
-    deliveryDateTime: padded[8]?.trim() ?? "",
-    miles: parseNumber(padded[9]),
+    broker: col(["broker"], 5),
+    loadDetails: col(["load details"], 6),
+    pickupDateTime: col(["pickup date & time", "pickup"], 7),
+    deliveryDateTime: col(["delivery date & time", "delivery"], 8),
+    miles: parseNumber(col(["miles"], 9)),
     loadNumber: loadNum,
-    states: padded[11]?.trim() ?? "",
-    rcInvoice: parseMoney(padded[12]),
-    dispatchPercent: parseNumber(padded[13]),
-    dispatchFee: parseMoney(padded[14]),
-    invoice: padded[15]?.trim() ?? "",
-    received: parseMoney(padded[16]),
-    balance: parseMoney(padded[17]),
-    notes: padded[18]?.trim() ?? "",
-    claim: padded[19]?.trim() ?? "",
-    status: padded[20]?.trim() ?? "",
-    cpay: padded[21]?.trim() ?? "",
-    dtp: padded[22]?.trim() ?? "",
-    brokerAgentName: padded[23]?.trim() ?? "",
-    email: padded[24]?.trim() ?? "",
-    phone: padded[25]?.trim() ?? "",
-    extraNotes: padded[26]?.trim() ?? "",
+    states: col(["states"], 11),
+    rcInvoice: parseMoney(col(["rc-invoice", "rc invoice"], 12)),
+    dispatchPercent: parseNumber(col(["%"], 13)),
+    dispatchFee: parseMoney(col(["dispatch fee"], 14)),
+    invoice: col(["invoice"], 15),
+    received: parseMoney(col(["received"], 16)),
+    balance: parseMoney(col(["balance"], 17)),
+    notes: col(["notes"], 18),
+    claim: col(["claim"], 19),
+    status: col(["status"], 20),
+    cpay: col(["cpay"], 21),
+    dtp: col(["dtp"], 22),
+    brokerAgentName: col(["broker agent name", "broker agent"], 23),
+    email: col(["email", "e-mail", "carrier email"], 24),
+    phone: col(["phone", "carrier phone"], 25),
+    extraNotes: col(["notes"], 26),
   };
 }
 
@@ -148,11 +161,18 @@ export function parseDispatchCsv(csv: string): DispatchSheetRow[] {
   if (lines.length === 0) return [];
 
   const headerIndex = findHeaderRowIndex(lines);
+  const headerCells = parseCsvLine(lines[headerIndex]);
+  const columnIndex = new Map<string, number>();
+  headerCells.forEach((cell, idx) => {
+    const key = normalizeHeader(cell);
+    if (key) columnIndex.set(key, idx);
+  });
+
   const dataLines = lines.slice(headerIndex + 1);
   const rows: DispatchSheetRow[] = [];
 
   for (const line of dataLines) {
-    const row = rowFromCells(parseCsvLine(line));
+    const row = rowFromCells(parseCsvLine(line), columnIndex);
     if (row) rows.push(row);
   }
 

@@ -13,6 +13,7 @@ import {
   groupLoadsByCarrier,
   isInvoiceableLoad,
 } from "@/lib/freight/dispatch-invoice";
+import { buildCarrierContactIndex, resolveCarrierEmail } from "@/lib/freight/carrier-contact";
 import {
   INVOICE_PAYMENT_OPTIONS,
   type InvoicePaymentMethod,
@@ -44,15 +45,21 @@ export function DispatcherInvoicesPage() {
 
   const carrierGroups = useMemo(() => {
     if (!data) return [];
+    const rosterIndex = buildCarrierContactIndex(data.carrier_roster);
     const grouped = groupLoadsByCarrier(data.loads);
-    const allPreview = buildCarrierInvoices(data.loads, { invoiceDate: friday });
+    const allPreview = buildCarrierInvoices(data.loads, {
+      invoiceDate: friday,
+      carrierRoster: data.carrier_roster,
+    });
     const numberByCarrier = new Map(allPreview.map((inv) => [inv.carrierName, inv.invoiceNumber]));
 
     return Array.from(grouped.entries()).map(([carrier, loads]) => {
-      const preview = buildCarrierInvoices(loads, { invoiceDate: friday });
+      const preview = buildCarrierInvoices(loads, {
+        invoiceDate: friday,
+        carrierRoster: data.carrier_roster,
+      });
       const invoice = preview[0];
-      const first = loads[0];
-      const email = first.email !== "—" ? first.email.trim() : "";
+      const email = resolveCarrierEmail(loads, rosterIndex);
       return {
         carrier,
         loads,
@@ -336,7 +343,7 @@ export function DispatcherInvoicesPage() {
                   </td>
                   <td className="max-w-[180px] truncate px-4 py-3 text-[var(--color-muted)]" title={group.email}>
                     {group.email || (
-                      <span className="text-red-300" title="Add Email column on dispatch sheet">
+                      <span className="text-red-300" title="Add email on Carriers tab or dispatch Email column">
                         Missing
                       </span>
                     )}
