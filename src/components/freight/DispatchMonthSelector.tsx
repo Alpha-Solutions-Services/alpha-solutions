@@ -24,7 +24,7 @@ export function DispatchMonthSelector({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-transparent font-medium text-[var(--color-text)] outline-none"
+        className="dispatch-field min-w-[9rem] border-0 bg-[var(--color-surface)] font-medium outline-none"
       >
         {tabs.map((tab) => (
           <option key={tab} value={tab} className="bg-[var(--color-bg)]">

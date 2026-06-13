@@ -94,13 +94,13 @@ export function DispatchLoadsTable({
               placeholder="Search SR#, carrier, broker, truck…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/60 py-2.5 pl-10 pr-4 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]/50"
+              className="dispatch-field w-full rounded-xl border border-[var(--color-border)] py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[var(--color-accent)]/50"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-3 py-2.5 text-sm text-[var(--color-text)]"
+            className="dispatch-field rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-sm"
           >
             {statuses.map((s) => (
               <option key={s} value={s}>

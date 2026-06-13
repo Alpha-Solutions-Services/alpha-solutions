@@ -1,9 +1,18 @@
 import {
   brandedEmailWrap,
   createConfiguredTransporter,
+  createInvoiceTransporter,
+  resolveInvoiceFromAddress,
   resolveSmtpFromAddress,
 } from "@/lib/freight/email-transport";
 import { FREIGHT_SUPPORT_EMAIL, FREIGHT_TEAM_EMAIL, PUBLIC_SITE_URL } from "./constants";
+import type { CarrierDispatchInvoice, InvoiceIssuer } from "./dispatch-invoice";
+import { formatInvoiceDate } from "./dispatch-invoice";
+import {
+  paymentDetailsToEmailHtml,
+  paymentDetailsToEmailText,
+  type InvoicePaymentDetails,
+} from "./dispatch-invoice-payment";
 
 const cta = (label: string, href: string) =>
   `<p style="margin:24px 0"><a href="${href}" style="display:inline-block;padding:14px 24px;background:#38a3ff;color:#05080f;border-radius:10px;font-weight:700;text-decoration:none">${label}</a></p>`;
@@ -14,20 +23,23 @@ async function sendTransactional(params: {
   html: string;
   text: string;
   replyTo?: string;
+  from?: string;
+  attachments?: { filename: string; content: Buffer }[];
 }) {
   const transporter = createConfiguredTransporter();
   const smtpUser = process.env.SMTP_USER?.trim();
   if (!transporter || !smtpUser) {
     console.warn("[freight-mail] SMTP missing — outbound mail skipped:", params.subject);
-    return { ok: false as const };
+    return { ok: false as const, error: "SMTP not configured" };
   }
   await transporter.sendMail({
-    from: resolveSmtpFromAddress(`Alpha Solutions <${smtpUser}>`),
+    from: resolveSmtpFromAddress(params.from ?? `Alpha Solutions <${smtpUser}>`),
     to: params.to,
     replyTo: params.replyTo,
     subject: params.subject,
     text: params.text,
     html: params.html,
+    attachments: params.attachments,
   });
   return { ok: true as const };
 }
@@ -180,6 +192,91 @@ export async function sendStudentSubscriptionCancelledEmail(
 
 function supportSnippet() {
   return `<p style="font-size:13px;color:#6a8caf;margin-top:20px;">Help: ${FREIGHT_SUPPORT_EMAIL}</p>`;
+}
+
+function formatMoneyUsd(n: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+}
+
+export async function sendCarrierDispatchInvoiceEmail(params: {
+  invoice: CarrierDispatchInvoice;
+  issuer: InvoiceIssuer;
+  payment: InvoicePaymentDetails;
+  pdf: Buffer;
+  pdfFilename: string;
+}) {
+  const { invoice, issuer, payment, pdf, pdfFilename } = params;
+  const to = invoice.billTo.email?.trim();
+  if (!to || to === "—") {
+    return { ok: false as const, error: "Carrier email missing on dispatch sheet" };
+  }
+
+  const greetingName =
+    invoice.billTo.contactName?.trim() ||
+    invoice.billTo.companyName.split(/\s+/)[0] ||
+    "there";
+
+  const loadLines = invoice.lineItems.map((li) => li.emailSummary).join("\n");
+  const loadLinesHtml = invoice.lineItems
+    .map((li) => `<li>${escapeHtml(li.emailSummary)}</li>`)
+    .join("");
+
+  const paymentBlock = paymentDetailsToEmailText(payment);
+  const paymentHtml = paymentDetailsToEmailHtml(payment);
+
+  const subject = `Invoice # ${invoice.invoiceNumber} Payment Details - ${invoice.carrierName} to ${issuer.brandName}`;
+
+  const text = `Hi ${greetingName},
+
+Please find the payment details for Invoice #${invoice.invoiceNumber} – ${invoice.carrierName}.
+
+Amount Due: ${formatMoneyUsd(invoice.total)}
+
+This invoice covers the following loads:
+
+${loadLines}
+
+${paymentBlock}
+
+Kindly submit the payment and send a screenshot of the confirmation for our records.
+
+Best regards,
+
+${issuer.contactName}
+${issuer.brandName}
+Department of ${issuer.companyName}`;
+
+  const html = brandedEmailWrap(
+    "Invoice payment",
+    `<p>Hi ${escapeHtml(greetingName)},</p>
+     <p>Please find the payment details for <strong>Invoice #${invoice.invoiceNumber} – ${escapeHtml(invoice.carrierName)}</strong>.</p>
+     <p style="margin-top:18px;font-size:18px;"><strong>Amount Due:</strong> ${escapeHtml(formatMoneyUsd(invoice.total))}</p>
+     <p style="margin-top:18px;margin-bottom:8px;">This invoice covers the following loads:</p>
+     <ul style="margin:0 0 18px;padding-left:20px;line-height:1.7;">${loadLinesHtml}</ul>
+     ${paymentHtml}
+     <p style="margin-top:20px;">Kindly submit the payment and send a screenshot of the confirmation for our records.</p>
+     <p style="margin-top:24px;">Best regards,<br><strong>${escapeHtml(issuer.contactName)}</strong><br>${escapeHtml(issuer.brandName)}<br>Department of ${escapeHtml(issuer.companyName)}</p>
+     <p style="margin-top:18px;font-size:13px;color:#6a8caf;">Due date: ${escapeHtml(formatInvoiceDate(invoice.dueDate))} · PDF invoice attached</p>`,
+  );
+
+  const transporter = createInvoiceTransporter();
+  const smtpUser =
+    process.env.DISPATCH_INVOICE_SMTP_USER?.trim() || process.env.SMTP_USER?.trim();
+  if (!transporter || !smtpUser) {
+    console.warn("[freight-mail] Invoice SMTP missing — outbound mail skipped:", subject);
+    return { ok: false as const, error: "Invoice SMTP not configured" };
+  }
+
+  await transporter.sendMail({
+    from: resolveInvoiceFromAddress(issuer.emailFrom),
+    to,
+    subject,
+    text,
+    html,
+    attachments: [{ filename: pdfFilename, content: pdf }],
+  });
+
+  return { ok: true as const };
 }
 
 function escapeHtml(s: string) {

@@ -3,6 +3,7 @@ import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { CarrierDispatchInvoice, InvoiceIssuer } from "./dispatch-invoice";
 import { formatInvoiceDate } from "./dispatch-invoice";
+import type { InvoicePaymentDetails } from "./dispatch-invoice-payment";
 
 const LOGO_SIZE = 56;
 
@@ -46,8 +47,11 @@ async function loadLogoBytes(): Promise<Uint8Array | null> {
 export async function renderCarrierInvoicePdf(
   invoice: CarrierDispatchInvoice,
   issuer: InvoiceIssuer,
+  payment: InvoicePaymentDetails,
 ): Promise<Buffer> {
   const pdf = await PDFDocument.create();
+  pdf.setTitle(`Invoice ${invoice.invoiceNumber} ${invoice.carrierName}`);
+  pdf.setAuthor(issuer.contactName);
   const page = pdf.addPage([612, 792]);
   const { width, height } = page.getSize();
   const margin = 50;
@@ -176,13 +180,26 @@ export async function renderCarrierInvoicePdf(
   });
 
   y -= 36;
-  drawAt("Zelle", margin, y, 11, bold);
+  drawAt(payment.heading, margin, y, 11, bold);
   y -= 16;
-  drawAt(`Number : ${issuer.zelleNumber}`, margin, y, 10);
-  y -= 14;
-  drawAt(`Name : ${issuer.zelleName}`, margin, y, 10);
+  for (const line of payment.lines) {
+    if (payment.method === "stripe" && line.startsWith("Pay online : ")) {
+      const url = line.slice("Pay online : ".length);
+      drawAt("Pay online with card (Stripe)", margin, y, 10);
+      y -= 14;
+      const urlLines = wrapText(url, regular, 9, contentWidth);
+      for (const urlLine of urlLines) {
+        drawAt(urlLine, margin, y, 9, regular, accent);
+        y -= 12;
+      }
+      y -= 4;
+      continue;
+    }
+    drawAt(line, margin, y, 10);
+    y -= 14;
+  }
 
-  y -= 32;
+  y -= 18;
   drawAt("TERMS", margin, y, 10, bold, muted);
   y -= 14;
   page.drawText(`Thank you for choosing ${issuer.companyName}.`, {

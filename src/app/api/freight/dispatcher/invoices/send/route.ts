@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import JSZip from "jszip";
 import { z } from "zod";
 import { buildDispatchDashboard } from "@/lib/freight/build-dispatch-dashboard";
+import { sendCarrierDispatchInvoiceEmail } from "@/lib/freight/emails";
 import {
   buildCarrierInvoices,
   getDefaultIssuer,
@@ -76,60 +76,68 @@ export async function POST(req: NextRequest) {
 
     const issuer = getDefaultIssuer();
     const origin = req.nextUrl.origin;
+    const results: { carrier: string; ok: boolean; error?: string }[] = [];
 
-    if (invoices.length === 1) {
-      const { pdf } = await buildInvoicePdfWithPayment(
-        invoices[0],
-        issuer,
-        body.paymentMethod,
-        origin,
-      );
-      const filename = invoicePdfFilename(invoices[0]);
-      return new NextResponse(new Uint8Array(pdf), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${filename}"`,
-        },
-      });
-    }
-
-    const zip = new JSZip();
     for (const invoice of invoices) {
-      const { pdf } = await buildInvoicePdfWithPayment(
+      const email = invoice.billTo.email?.trim();
+      if (!email || email === "—") {
+        results.push({
+          carrier: invoice.carrierName,
+          ok: false,
+          error: "Missing email on dispatch sheet",
+        });
+        continue;
+      }
+
+      const { pdf, payment } = await buildInvoicePdfWithPayment(
         invoice,
         issuer,
         body.paymentMethod,
         origin,
       );
-      zip.file(invoicePdfFilename(invoice), pdf);
+      const filename = invoicePdfFilename(invoice);
+      const sent = await sendCarrierDispatchInvoiceEmail({
+        invoice,
+        issuer,
+        payment,
+        pdf,
+        pdfFilename: filename,
+      });
+
+      results.push({
+        carrier: invoice.carrierName,
+        ok: sent.ok,
+        error: sent.ok ? undefined : sent.error ?? "Email failed",
+      });
     }
 
-    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
-    const stamp = invoiceDate.toISOString().slice(0, 10);
+    const sentCount = results.filter((r) => r.ok).length;
+    const failed = results.filter((r) => !r.ok);
 
-    return new NextResponse(new Uint8Array(zipBuffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="dispatch-invoices-${stamp}.zip"`,
-      },
+    if (sentCount === 0) {
+      return NextResponse.json(
+        {
+          error:
+            failed[0]?.error ??
+            "Could not send invoices — check carrier email on the dispatch sheet and SMTP settings",
+          results,
+        },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      sent: sentCount,
+      failed: failed.length,
+      results,
     });
   } catch (e) {
-    console.error("[invoices/generate]", e);
+    console.error("[invoices/send]", e);
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
-    const message =
-      e instanceof Error ? e.message : "Failed to generate invoices";
-    return NextResponse.json(
-      {
-        error:
-          message.includes("ENOENT") || message.includes("Helvetica")
-            ? "PDF engine failed on server — redeploy with latest build"
-            : message || "Failed to generate invoices",
-      },
-      { status: 500 },
-    );
+    const message = e instanceof Error ? e.message : "Failed to send invoices";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -148,7 +148,7 @@ export function DispatcherDriversManage() {
               <input
                 value={form.driverName}
                 onChange={(e) => setForm((f) => ({ ...f, driverName: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-3 py-2"
+                className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2"
               />
             </label>
             <label className="block text-sm">
@@ -156,7 +156,7 @@ export function DispatcherDriversManage() {
               <select
                 value={form.carrierCompanyName}
                 onChange={(e) => setForm((f) => ({ ...f, carrierCompanyName: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-3 py-2"
+                className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2"
               >
                 <option value="">Select carrier…</option>
                 {carrierOptions.map((name) => (
@@ -172,7 +172,7 @@ export function DispatcherDriversManage() {
                 type="email"
                 value={form.driverEmail}
                 onChange={(e) => setForm((f) => ({ ...f, driverEmail: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-3 py-2"
+                className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2"
               />
             </label>
             <label className="block text-sm">
@@ -180,7 +180,7 @@ export function DispatcherDriversManage() {
               <input
                 value={form.driverPhone}
                 onChange={(e) => setForm((f) => ({ ...f, driverPhone: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-3 py-2"
+                className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2"
               />
             </label>
             <label className="block text-sm sm:col-span-2">
@@ -188,7 +188,7 @@ export function DispatcherDriversManage() {
               <input
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-3 py-2"
+                className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2"
               />
             </label>
           </div>

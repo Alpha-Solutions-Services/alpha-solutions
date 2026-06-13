@@ -12,6 +12,7 @@ import type {
 import {
   listMonthTabOptions,
   resolveActiveMonthTab,
+  resolveGidForMonthTab,
 } from "./dispatch-sheet-tabs";
 import { buildTopBookers } from "./carrier-sheet";
 
@@ -499,6 +500,14 @@ export async function fetchDispatchSheetCsv(requestedTab?: string | null): Promi
   const attempts: { url: string; label: string }[] = [];
 
   if (activeTab) {
+    const monthGid = resolveGidForMonthTab(activeTab);
+    if (monthGid) {
+      attempts.push({
+        label: `${activeTab}:gid:${monthGid}`,
+        url: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${monthGid}`,
+      });
+    }
+
     const encoded = encodeURIComponent(activeTab);
     attempts.push({
       label: activeTab,

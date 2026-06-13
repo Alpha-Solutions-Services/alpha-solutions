@@ -3,17 +3,23 @@ import type { DashboardLoad } from "./dispatch-dashboard-types";
 export type InvoiceIssuer = {
   contactName: string;
   companyName: string;
+  brandName: string;
   addressLine1: string;
   addressLine2: string;
   zelleNumber: string;
   zelleName: string;
+  zelleNumber2: string;
+  zelleName2: string;
+  zelleEmail2: string;
   website: string;
+  emailFrom: string;
 };
 
 export type InvoiceLineItem = {
   loadNumber: string;
   sr: string;
   description: string;
+  emailSummary: string;
   quantity: number;
   rate: number;
   amount: number;
@@ -40,14 +46,22 @@ export function getDefaultIssuer(): InvoiceIssuer {
     contactName: process.env.DISPATCH_INVOICE_CONTACT_NAME?.trim() || "Muhammad Mikran",
     companyName:
       process.env.DISPATCH_INVOICE_COMPANY_NAME?.trim() || "Alpha Solutions Services LLC",
+    brandName: process.env.DISPATCH_INVOICE_BRAND_NAME?.trim() || "Alpha Freight Network",
     addressLine1:
       process.env.DISPATCH_INVOICE_ADDRESS_LINE1?.trim() ||
       "7533 S Center View Ct Ste R, West Jordan, UT",
     addressLine2: process.env.DISPATCH_INVOICE_ADDRESS_LINE2?.trim() || "84084 US",
     zelleNumber: process.env.DISPATCH_INVOICE_ZELLE_NUMBER?.trim() || "+1 (908) 848-9815",
     zelleName: process.env.DISPATCH_INVOICE_ZELLE_NAME?.trim() || "Suzy Agon",
+    zelleNumber2: process.env.DISPATCH_INVOICE_ZELLE_NUMBER_2?.trim() || "(332) 263-3544",
+    zelleName2: process.env.DISPATCH_INVOICE_ZELLE_NAME_2?.trim() || "Maliha Shahid",
+    zelleEmail2:
+      process.env.DISPATCH_INVOICE_ZELLE_EMAIL_2?.trim() || "malihaawais1997@gmail.com",
     website:
       process.env.DISPATCH_INVOICE_WEBSITE?.trim() || "https://www.alphasolutions.software/",
+    emailFrom:
+      process.env.DISPATCH_INVOICE_FROM?.trim() ||
+      "Alpha Invoice & Payment <invoice.payment.alpha@gmail.com>",
   };
 }
 
@@ -80,6 +94,22 @@ function computeDispatchFee(load: DashboardLoad): number {
     return Math.round((load.rate * load.dispatch_percent) / 100 * 100) / 100;
   }
   return 0;
+}
+
+function formatMoneyUsd(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(n);
+}
+
+export function buildLineItemEmailSummary(load: DashboardLoad, amount: number): string {
+  const broker = load.broker !== "—" ? load.broker : "Load";
+  const loadNo =
+    load.load_number && load.load_number !== "—"
+      ? load.load_number
+      : load.load_id.replace(/^LD-/, "");
+  return `${broker} – Load #${loadNo} – ${formatMoneyUsd(amount)}`;
 }
 
 export function buildLineItemDescription(load: DashboardLoad): string {
@@ -179,6 +209,7 @@ export function buildCarrierInvoices(
           load.load_number !== "—" ? load.load_number : load.sr,
         sr: load.sr,
         description: buildLineItemDescription(load),
+        emailSummary: buildLineItemEmailSummary(load, amount),
         quantity: 1,
         rate: amount,
         amount,

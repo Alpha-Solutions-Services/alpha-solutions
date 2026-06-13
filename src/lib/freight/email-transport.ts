@@ -25,32 +25,81 @@ export function resolveSmtpFromAddress(fallbackFrom: string) {
   );
 }
 
-/** Shared nodemailer config with `src/app/api/contact/route.ts` */
-export function createConfiguredTransporter(): nodemailer.Transporter | null {
-  const smtpHost = process.env.SMTP_HOST?.trim();
-  const smtpUser = process.env.SMTP_USER?.trim();
-  const smtpPassRaw = process.env.SMTP_PASS;
-  const smtpPass = smtpPassRaw
-    ? stripWrappingQuotes(smtpPassRaw).replace(/\s+/g, "")
-    : undefined;
-  const smtpPort = Number(process.env.SMTP_PORT || 587);
-  const smtpSecure = process.env.SMTP_SECURE === "true";
+function readSmtpPass(raw: string | undefined): string | undefined {
+  return raw ? stripWrappingQuotes(raw).replace(/\s+/g, "") : undefined;
+}
 
-  const smtpConfigured = Boolean(smtpHost && smtpUser && smtpPass);
-  if (!smtpConfigured || !smtpHost || !smtpUser || !smtpPass) {
-    console.warn("[freight-mail] SMTP not configured — skipping send");
-    return null;
-  }
+function buildTransporter(opts: {
+  host?: string;
+  port: number;
+  secure: boolean;
+  user?: string;
+  pass?: string;
+}): nodemailer.Transporter | null {
+  const { host, port, secure, user, pass } = opts;
+  if (!host || !user || !pass) return null;
 
   return nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure,
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
+    host,
+    port,
+    secure,
+    auth: { user, pass },
   });
+}
+
+/** Shared nodemailer config with `src/app/api/contact/route.ts` */
+export function createConfiguredTransporter(): nodemailer.Transporter | null {
+  const transporter = buildTransporter({
+    host: process.env.SMTP_HOST?.trim(),
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === "true",
+    user: process.env.SMTP_USER?.trim(),
+    pass: readSmtpPass(process.env.SMTP_PASS),
+  });
+
+  if (!transporter) {
+    console.warn("[freight-mail] SMTP not configured — skipping send");
+  }
+
+  return transporter;
+}
+
+/** Invoice send — uses DISPATCH_INVOICE_SMTP_* when set, else falls back to SMTP_*. */
+export function createInvoiceTransporter(): nodemailer.Transporter | null {
+  const host =
+    process.env.DISPATCH_INVOICE_SMTP_HOST?.trim() || process.env.SMTP_HOST?.trim();
+  const port = Number(
+    process.env.DISPATCH_INVOICE_SMTP_PORT?.trim() || process.env.SMTP_PORT || 587,
+  );
+  const secure =
+    process.env.DISPATCH_INVOICE_SMTP_SECURE?.trim() !== undefined
+      ? process.env.DISPATCH_INVOICE_SMTP_SECURE === "true"
+      : process.env.SMTP_SECURE === "true";
+  const user =
+    process.env.DISPATCH_INVOICE_SMTP_USER?.trim() || process.env.SMTP_USER?.trim();
+  const pass = readSmtpPass(
+    process.env.DISPATCH_INVOICE_SMTP_PASS ?? process.env.SMTP_PASS,
+  );
+
+  const transporter = buildTransporter({ host, port, secure, user, pass });
+
+  if (!transporter) {
+    console.warn("[freight-mail] Invoice SMTP not configured — skipping send");
+  }
+
+  return transporter;
+}
+
+export function resolveInvoiceFromAddress(fallbackFrom: string) {
+  const fromRaw = process.env.DISPATCH_INVOICE_FROM;
+  const fromStripped =
+    typeof fromRaw === "string" ? stripWrappingQuotes(fromRaw) : undefined;
+  return (
+    fromStripped ||
+    fallbackFrom ||
+    process.env.DISPATCH_INVOICE_SMTP_USER?.trim() ||
+    "Alpha Invoice & Payment <invoice.payment.alpha@gmail.com>"
+  );
 }
 
 export function brandedEmailWrap(title: string, innerHtml: string) {

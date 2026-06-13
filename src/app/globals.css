@@ -74,6 +74,38 @@ h6 {
   }
 }
 
+/* Dispatcher dashboard — readable inputs on dark theme */
+.dispatch-field,
+.dispatch-field[type="search"],
+.dispatch-field[type="text"],
+.dispatch-field[type="email"],
+.dispatch-field[type="tel"],
+.dispatch-field[type="number"],
+select.dispatch-field,
+textarea.dispatch-field {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  caret-color: var(--color-accent);
+}
+
+.dispatch-field::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+select.dispatch-field option {
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+.dispatch-field:-webkit-autofill,
+.dispatch-field:-webkit-autofill:hover,
+.dispatch-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: 0 0 0 1000px var(--color-surface) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
 .contact-grid {
   display: grid;
   grid-template-columns: 1fr 380px;
