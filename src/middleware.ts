@@ -3,6 +3,18 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSuperAdminEmail } from "@/lib/admin-allowlist";
 import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
 
+const CARRIER_STATUS_PREFIXES = [
+  "/freight/carrier/register",
+  "/freight/carrier/pending",
+  "/freight/carrier/rejected",
+  "/freight/carrier/suspended",
+] as const;
+
+function isCarrierPortalRoute(pathname: string): boolean {
+  if (!pathname.startsWith("/freight/carrier/")) return false;
+  return !CARRIER_STATUS_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -145,7 +157,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      if (pathname.startsWith("/freight/carrier/dashboard")) {
+      if (isCarrierPortalRoute(pathname)) {
         if (profile.role !== "carrier") {
           const n = request.nextUrl.clone();
           n.pathname = "/freight/login";
