@@ -16,36 +16,6 @@ import {
 } from "./dispatch-sheet-tabs";
 import { buildTopBookers } from "./carrier-sheet";
 
-const SHEET_HEADERS = [
-  "SR#",
-  "Booked By",
-  "RC DATE",
-  "Truck & Trailer",
-  "Company Name",
-  "BROKER",
-  "Load Details",
-  "Pickup Date & Time",
-  "Delivery Date & Time",
-  "MILES",
-  "Load #",
-  "States",
-  "RC-INVOICE",
-  "%",
-  "DISPATCH FEE",
-  "INVOICE",
-  "RECEIVED",
-  "BALANCE",
-  "NOTES",
-  "CLAIM",
-  "STATUS",
-  "CPAY",
-  "DTP",
-  "Broker Agent Name",
-  "Email",
-  "Phone",
-  "Notes",
-] as const;
-
 /** Parse a CSV line respecting quoted fields. */
 export function parseCsvLine(line: string): string[] {
   const out: string[] = [];
