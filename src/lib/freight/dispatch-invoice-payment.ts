@@ -27,6 +27,9 @@ export function parseInvoicePaymentMethod(value: unknown): InvoicePaymentMethod 
   return "s_zelle";
 }
 
+export const STRIPE_BRAND_COLOR = "#635BFF";
+export const STRIPE_PAY_BUTTON_LABEL = "Pay through Stripe";
+
 export function resolveInvoicePaymentDetails(
   issuer: InvoiceIssuer,
   method: InvoicePaymentMethod,
@@ -42,10 +45,12 @@ export function resolveInvoicePaymentDetails(
   }
 
   if (method === "stripe") {
-    const lines = stripeUrl
-      ? [`Pay online : ${stripeUrl}`]
-      : ["Pay online with card — link included in email"];
-    return { method, heading: "Stripe", lines, stripeUrl };
+    return {
+      method,
+      heading: "Stripe",
+      lines: stripeUrl ? [] : ["Card payment — checkout link will be sent by email"],
+      stripeUrl,
+    };
   }
 
   return {
@@ -58,7 +63,7 @@ export function resolveInvoicePaymentDetails(
 export function paymentDetailsToEmailText(details: InvoicePaymentDetails): string {
   if (details.method === "stripe") {
     return details.stripeUrl
-      ? `Pay securely online:\n${details.stripeUrl}`
+      ? `${STRIPE_PAY_BUTTON_LABEL}:\n${details.stripeUrl}`
       : "Stripe card payment — contact us for a payment link.";
   }
 
@@ -72,11 +77,24 @@ export function paymentDetailsToEmailText(details: InvoicePaymentDetails): strin
   return `${prefix} Payment Information:\n\n${body}`;
 }
 
+export function stripePayButtonEmailHtml(url: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 10px;">
+    <tr>
+      <td style="border-radius:8px;background:${STRIPE_BRAND_COLOR};">
+        <a href="${escapeAttr(url)}"
+           style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;letter-spacing:0.01em;">
+          ${escapeHtml(STRIPE_PAY_BUTTON_LABEL)}
+        </a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 4px;font-size:12px;color:#6a8caf;">Secure card payment powered by Stripe</p>`;
+}
+
 export function paymentDetailsToEmailHtml(details: InvoicePaymentDetails): string {
   if (details.method === "stripe") {
     if (details.stripeUrl) {
-      return `<p style="margin-bottom:8px;"><strong>Pay with card (Stripe):</strong></p>
-        <p style="margin:0 0 12px;"><a href="${escapeAttr(details.stripeUrl)}" style="color:#38a3ff;">${escapeHtml(details.stripeUrl)}</a></p>`;
+      return `<p style="margin-bottom:4px;"><strong>Card payment</strong></p>${stripePayButtonEmailHtml(details.stripeUrl)}`;
     }
     return `<p style="margin-bottom:8px;"><strong>Stripe card payment</strong> — payment link unavailable. Contact ${escapeHtml(process.env.FREIGHT_SUPPORT_EMAIL ?? "support")}.</p>`;
   }

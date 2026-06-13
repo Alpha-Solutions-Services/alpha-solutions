@@ -4,8 +4,10 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 import type { CarrierDispatchInvoice, InvoiceIssuer } from "./dispatch-invoice";
 import { formatInvoiceDate } from "./dispatch-invoice";
 import type { InvoicePaymentDetails } from "./dispatch-invoice-payment";
+import { STRIPE_PAY_BUTTON_LABEL } from "./dispatch-invoice-payment";
 
 const LOGO_SIZE = 56;
+const STRIPE_PURPLE = rgb(99 / 255, 91 / 255, 1);
 
 /** Invisible sheet chars (e.g. U+202C) break pdf-lib WinAnsi Helvetica encoding. */
 function sanitizePdfText(text: string): string {
@@ -197,21 +199,17 @@ export async function renderCarrierInvoicePdf(
   y -= 36;
   drawAt(payment.heading, margin, y, 11, bold);
   y -= 16;
-  for (const line of payment.lines) {
-    if (payment.method === "stripe" && line.startsWith("Pay online : ")) {
-      const url = line.slice("Pay online : ".length);
-      drawAt("Pay online with card (Stripe)", margin, y, 10);
-      y -= 14;
-      const urlLines = wrapText(url, regular, 9, contentWidth);
-      for (const urlLine of urlLines) {
-        drawAt(urlLine, margin, y, 9, regular, accent);
-        y -= 12;
-      }
-      y -= 4;
-      continue;
-    }
-    drawAt(line, margin, y, 10);
+
+  if (payment.method === "stripe" && payment.stripeUrl) {
+    y = drawStripePaymentBlock(page, margin, y, payment.stripeUrl, regular, bold, muted, contentWidth);
+  } else if (payment.method === "stripe") {
+    drawAt("Pay through Stripe — checkout link sent by email", margin, y, 10);
     y -= 14;
+  } else {
+    for (const line of payment.lines) {
+      drawAt(line, margin, y, 10);
+      y -= 14;
+    }
   }
 
   y -= 18;
@@ -331,6 +329,64 @@ function drawLineItemsTable(
   });
 
   return y;
+}
+
+function drawStripePaymentBlock(
+  page: PDFPage,
+  x: number,
+  y: number,
+  url: string,
+  regular: PDFFont,
+  bold: PDFFont,
+  muted: ReturnType<typeof rgb>,
+  maxWidth: number,
+): number {
+  const label = sanitizePdfText(STRIPE_PAY_BUTTON_LABEL);
+  const size = 11;
+  const padX = 18;
+  const padY = 9;
+  const textWidth = bold.widthOfTextAtSize(label, size);
+  const buttonW = textWidth + padX * 2;
+  const buttonH = size + padY * 2;
+
+  page.drawRectangle({
+    x,
+    y: y - buttonH,
+    width: buttonW,
+    height: buttonH,
+    color: STRIPE_PURPLE,
+  });
+  page.drawText(label, {
+    x: x + padX,
+    y: y - buttonH + padY,
+    size,
+    font: bold,
+    color: rgb(1, 1, 1),
+  });
+
+  let cursor = y - buttonH - 14;
+  page.drawText(sanitizePdfText("Secure card checkout:"), {
+    x,
+    y: cursor,
+    size: 9,
+    font: regular,
+    color: muted,
+  });
+  cursor -= 12;
+
+  const urlLines = wrapText(url, regular, 8, maxWidth);
+  for (const urlLine of urlLines) {
+    page.drawText(urlLine, {
+      x,
+      y: cursor,
+      size: 8,
+      font: regular,
+      color: STRIPE_PURPLE,
+    });
+    cursor -= 10;
+  }
+
+  return cursor - 4;
 }
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
