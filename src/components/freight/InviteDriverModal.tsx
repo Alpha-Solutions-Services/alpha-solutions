@@ -39,6 +39,20 @@ export function InviteDriverModal({
       return;
     }
     try {
+      if (mode === "carrier") {
+        const payRes = await fetch("/api/freight/carrier/driver-slot-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ driverName, driverEmail }),
+        });
+        const payJson = (await payRes.json()) as { url?: string; error?: string };
+        if (!payRes.ok) throw new Error(payJson.error || "Payment required ($5 per driver)");
+        if (payJson.url) {
+          window.location.href = payJson.url;
+          return;
+        }
+      }
+
       const payload =
         mode === "dispatcher"
           ? { driverName, driverEmail, carrierId }
@@ -82,6 +96,11 @@ export function InviteDriverModal({
               ×
             </button>
             <h3 className="text-lg font-bold text-[var(--color-text)]">Driver invitation</h3>
+            {mode === "carrier" ? (
+              <p className="mt-2 text-xs text-[var(--color-muted)]">
+                Adding a driver costs <strong className="text-orange-300">$5</strong> (Stripe checkout). Dispatchers add drivers free.
+              </p>
+            ) : null}
             {mode === "dispatcher" ? (
               <>
                 <label className="mt-6 block text-xs text-[var(--color-muted)]">
@@ -121,7 +140,7 @@ export function InviteDriverModal({
               onClick={() => void send()}
               className="mt-8 w-full rounded-lg bg-[var(--color-accent)] py-3 text-sm font-bold text-[#05080f] disabled:opacity-50"
             >
-              {busy ? "Sending…" : "Send invitation"}
+              {busy ? "Sending…" : mode === "carrier" ? "Pay $5 & invite" : "Send invitation"}
             </button>
             {msg ? <p className="mt-4 text-xs text-[var(--color-muted)]">{msg}</p> : null}
           </div>

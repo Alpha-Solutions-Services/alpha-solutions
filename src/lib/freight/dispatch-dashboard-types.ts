@@ -83,6 +83,9 @@ export type DashboardLoad = {
   broker_agent: string;
   email: string;
   phone: string;
+  /** Supabase dispatch_loads.id when sourced from DB */
+  db_id?: string;
+  data_source?: "supabase" | "sheet";
 };
 
 export type DashboardCarrier = {

@@ -20,6 +20,7 @@ const NAV = [
   { href: "/freight/dispatcher/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/freight/dispatcher/loads", label: "Loads", icon: Package },
   { href: "/freight/dispatcher/carriers", label: "Carriers", icon: Users },
+  { href: "/freight/dispatcher/carrier-portal", label: "Carrier portal", icon: Users },
   { href: "/freight/dispatcher/invoices", label: "Invoices", icon: FileText },
   { href: "/freight/dispatcher/reports", label: "Reports", icon: BarChart3 },
   { href: "/freight/dispatcher/alerts", label: "Alerts", icon: AlertTriangle },

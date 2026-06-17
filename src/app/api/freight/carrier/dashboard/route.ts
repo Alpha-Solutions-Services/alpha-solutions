@@ -32,6 +32,7 @@ export async function GET() {
     companyName: profile.company_name?.trim() || "ABC Trucking LLC",
     mcNumber: profile.mc_number?.trim(),
     ownerName: profile.full_name?.trim(),
+    carrierProfileId: user.id,
   });
 
   return NextResponse.json(data);

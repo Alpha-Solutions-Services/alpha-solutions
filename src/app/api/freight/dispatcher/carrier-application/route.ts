@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { startCarrierTrialIso } from "@/lib/freight/carrier-subscription";
 import { sendCarrierApprovedEmail, sendCarrierRejectedEmail } from "@/lib/freight/emails";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,6 +51,12 @@ export async function POST(req: NextRequest) {
         carrier_status: nextStatus,
         carrier_review_note:
           body.decision === "reject" ? (body.reason ?? "No reason supplied") : null,
+        ...(body.decision === "approve"
+          ? {
+              carrier_subscription_status: "trialing",
+              carrier_trial_ends_at: startCarrierTrialIso(),
+            }
+          : {}),
       })
       .eq("id", body.carrierProfileId)
       .eq("role", "carrier");

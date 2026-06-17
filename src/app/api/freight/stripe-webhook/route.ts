@@ -40,6 +40,35 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "DB not configured" }, { status: 500 });
 
   try {
+    if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
+      const sub = event.data.object as Stripe.Subscription;
+      const profileId = sub.metadata?.profile_id;
+      const isCarrier = sub.metadata?.freight_carrier === "1";
+      if (isCarrier && profileId) {
+        await admin
+          .from("profiles")
+          .update({
+            carrier_subscription_status: sub.status,
+            carrier_stripe_subscription_id: sub.id,
+            stripe_customer_id:
+              typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
+          })
+          .eq("id", profileId)
+          .eq("role", "carrier");
+      }
+    }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.freight_driver_slot === "1" && session.metadata.profile_id) {
+        await admin
+          .from("driver_slot_payments")
+          .update({ status: "paid", stripe_payment_intent_id: session.payment_intent as string })
+          .eq("carrier_profile_id", session.metadata.profile_id)
+          .eq("status", "pending");
+      }
+    }
+
     if (event.type === "payment_intent.succeeded") {
       const pi = event.data.object as Stripe.PaymentIntent;
       const email =
@@ -87,6 +116,23 @@ export async function POST(req: NextRequest) {
       const cust =
         typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
       if (!cust) return NextResponse.json({ received: true });
+
+      const isCarrier = sub.metadata?.freight_carrier === "1";
+      if (isCarrier) {
+        const profileId = sub.metadata?.profile_id;
+        if (profileId) {
+          await admin
+            .from("profiles")
+            .update({
+              carrier_subscription_status: "canceled",
+              carrier_stripe_subscription_id: null,
+            })
+            .eq("id", profileId)
+            .eq("role", "carrier");
+        }
+        return NextResponse.json({ received: true });
+      }
+
       const { data: rows } = await admin
         .from("profiles")
         .select("email,full_name")

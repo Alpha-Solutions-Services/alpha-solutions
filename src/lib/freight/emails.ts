@@ -279,6 +279,113 @@ Department of ${issuer.companyName}`;
   return { ok: true as const };
 }
 
+export async function sendLoadAddedEmail(params: {
+  to: string;
+  carrierName: string;
+  loadNumber: string;
+  broker: string;
+  pickup: string;
+}) {
+  const html = brandedEmailWrap(
+    "New load assigned",
+    `<p>Hi ${escapeHtml(params.carrierName)},</p>
+     <p>A new load has been added to your account:</p>
+     <ul>
+       <li><strong>Load #:</strong> ${escapeHtml(params.loadNumber)}</li>
+       <li><strong>Broker:</strong> ${escapeHtml(params.broker || "—")}</li>
+       <li><strong>Pickup:</strong> ${escapeHtml(params.pickup || "—")}</li>
+     </ul>
+     ${cta("View in Carrier Portal", `${PUBLIC_SITE_URL}/freight/carrier/loads`)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `New load added — ${params.loadNumber}`,
+    html,
+    text: `New load ${params.loadNumber} added for ${params.carrierName}.`,
+  });
+}
+
+export async function sendLoadRemovedEmail(params: {
+  to: string;
+  carrierName: string;
+  loadNumber: string;
+}) {
+  const html = brandedEmailWrap(
+    "Load removed",
+    `<p>Hi ${escapeHtml(params.carrierName)},</p>
+     <p>Load <strong>#${escapeHtml(params.loadNumber)}</strong> has been removed from your active board by dispatch.</p>
+     <p style="font-size:13px;color:#6a8caf;">Questions? ${FREIGHT_SUPPORT_EMAIL}</p>`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `Load removed — ${params.loadNumber}`,
+    html,
+    text: `Load ${params.loadNumber} was removed for ${params.carrierName}.`,
+  });
+}
+
+export async function sendDriverAddedToCarrierEmail(params: {
+  to: string;
+  carrierName: string;
+  driverName: string;
+  driverEmail: string;
+}) {
+  const html = brandedEmailWrap(
+    "Driver added",
+    `<p>Hi ${escapeHtml(params.carrierName)},</p>
+     <p>Driver <strong>${escapeHtml(params.driverName)}</strong> (${escapeHtml(params.driverEmail)}) has been added to your fleet.</p>
+     ${cta("Manage drivers", `${PUBLIC_SITE_URL}/freight/carrier/drivers`)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `Driver added — ${params.driverName}`,
+    html,
+    text: `Driver ${params.driverName} added to ${params.carrierName}.`,
+  });
+}
+
+export async function sendFridayInvoiceReminderEmail(params: {
+  to: string;
+  dispatcherName: string;
+  invoiceCount: number;
+  dueDateLabel: string;
+}) {
+  const html = brandedEmailWrap(
+    "Friday invoice reminder",
+    `<p>Hi ${escapeHtml(params.dispatcherName)},</p>
+     <p><strong>Today is Friday</strong> — carrier dispatch invoices should be sent today only.</p>
+     <p>You have <strong>${params.invoiceCount}</strong> carrier invoice(s) ready · due ${escapeHtml(params.dueDateLabel)}.</p>
+     ${cta("Send invoices now", `${PUBLIC_SITE_URL}/freight/dispatcher/invoices?action=generate`)}
+     <p style="font-size:13px;color:#6a8caf;">Invoices are issued on Fridays only. Paid loads are excluded automatically.</p>`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: "Reminder: Send carrier invoices today (Friday)",
+    html,
+    text: `Friday invoice reminder: ${params.invoiceCount} invoices ready, due ${params.dueDateLabel}.`,
+  });
+}
+
+export async function sendLoadActionDispatcherEmail(params: {
+  to: string;
+  action: "added" | "removed";
+  loadNumber: string;
+  carrierName: string;
+  actorEmail: string;
+}) {
+  const verb = params.action === "added" ? "added" : "removed";
+  const html = brandedEmailWrap(
+    `Load ${verb}`,
+    `<p>Dispatch log: load <strong>#${escapeHtml(params.loadNumber)}</strong> for <strong>${escapeHtml(params.carrierName)}</strong> was ${verb} by ${escapeHtml(params.actorEmail)}.</p>`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `Load ${verb}: ${params.loadNumber} — ${params.carrierName}`,
+    html,
+    text: `Load ${params.loadNumber} ${verb} for ${params.carrierName}.`,
+  });
+}
+
 function escapeHtml(s: string) {
   return s
     .replaceAll("&", "&amp;")

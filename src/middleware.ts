@@ -183,6 +183,36 @@ export async function middleware(request: NextRequest) {
           n.pathname = "/freight/carrier/pending";
           return NextResponse.redirect(n);
         }
+
+        const billingExempt =
+          pathname.startsWith("/freight/carrier/payments") ||
+          pathname.startsWith("/freight/carrier/settings");
+
+        if (!billingExempt) {
+          const { data: billing } = await supabase
+            .from("profiles")
+            .select(
+              "carrier_subscription_status,carrier_trial_ends_at,carrier_stripe_subscription_id",
+            )
+            .eq("id", user.id)
+            .maybeSingle();
+
+          const status = billing?.carrier_subscription_status?.toLowerCase();
+          const trialEnd = billing?.carrier_trial_ends_at
+            ? new Date(billing.carrier_trial_ends_at as string)
+            : null;
+          const trialActive =
+            trialEnd && !Number.isNaN(trialEnd.getTime()) && trialEnd.getTime() > Date.now();
+          const subActive =
+            status === "active" || status === "trialing" || trialActive;
+
+          if (!subActive) {
+            const n = request.nextUrl.clone();
+            n.pathname = "/freight/carrier/payments";
+            n.searchParams.set("reason", "subscription");
+            return NextResponse.redirect(n);
+          }
+        }
       }
 
       if (pathname.startsWith("/freight/carrier/pending")) {

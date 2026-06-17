@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { z } from "zod";
-import { sendDriverInvitationEmail } from "@/lib/freight/emails";
+import { sendDriverAddedToCarrierEmail, sendDriverInvitationEmail } from "@/lib/freight/emails";
 import { PUBLIC_SITE_URL } from "@/lib/freight/constants";
 import { createClient } from "@/lib/supabase/server";
 
@@ -108,6 +108,20 @@ export async function POST(req: NextRequest) {
       carrierName,
       inviteUrl,
     ).catch(() => {});
+
+    const { data: carrierProfile } = await sb
+      .from("profiles")
+      .select("email")
+      .eq("id", carrierUuid)
+      .maybeSingle();
+    if (carrierProfile?.email) {
+      await sendDriverAddedToCarrierEmail({
+        to: carrierProfile.email as string,
+        carrierName,
+        driverName: body.driverName.trim(),
+        driverEmail: body.driverEmail.trim().toLowerCase(),
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {

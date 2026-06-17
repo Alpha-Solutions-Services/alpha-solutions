@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Mail, MapPin, Phone, RefreshCw, Sparkles, Upload } from "lucide-react";
 import { InviteDriverModal } from "@/components/freight/InviteDriverModal";
 import { DriverInvitationList } from "@/components/freight/DriverInvitationList";
@@ -121,9 +123,40 @@ export function CarrierTrucksPage() {
 }
 
 export function CarrierDriversPage() {
-  const { data, loading, company } = useCarrierPage();
+  const { data, loading, company, refresh } = useCarrierPage();
+  const searchParams = useSearchParams();
+  const [paidMsg, setPaidMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const paid = searchParams.get("driver_paid");
+    const name = searchParams.get("name");
+    const email = searchParams.get("email");
+    if (paid !== "1" || !name || !email) return;
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/freight/invite-driver", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ driverName: name, driverEmail: email }),
+        });
+        const json = (await res.json()) as { error?: string };
+        if (!res.ok) throw new Error(json.error ?? "Invite failed");
+        setPaidMsg(`Payment received — invitation sent to ${email}.`);
+        await refresh();
+      } catch (e) {
+        setPaidMsg(e instanceof Error ? e.message : "Could not send invite after payment");
+      }
+    })();
+  }, [searchParams, refresh]);
+
   return (
     <CarrierPageShell title="Drivers" loading={loading && !data} companyName={company}>
+      {paidMsg ? (
+        <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          {paidMsg}
+        </p>
+      ) : null}
       {data ? (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -158,8 +191,41 @@ export function CarrierDriversPage() {
 
 export function CarrierPaymentsPage() {
   const { data, loading, company } = useCarrierPage();
+  const [subBusy, setSubBusy] = useState(false);
+  const [subMsg, setSubMsg] = useState<string | null>(null);
+
+  async function startSubscription() {
+    setSubBusy(true);
+    setSubMsg(null);
+    try {
+      const res = await fetch("/api/freight/carrier/create-subscription", { method: "POST" });
+      const json = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Could not start checkout");
+      if (json.url) window.location.href = json.url;
+    } catch (e) {
+      setSubMsg(e instanceof Error ? e.message : "Checkout failed");
+    } finally {
+      setSubBusy(false);
+    }
+  }
+
   return (
     <CarrierPageShell title="Payments" loading={loading && !data} companyName={company}>
+      <CarrierGlassCard glow className="mb-6">
+        <p className="text-sm font-semibold text-[var(--color-text)]">Carrier portal subscription</p>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">
+          $10/month after a <strong className="text-[var(--color-text)]">7-day free trial</strong>. Required for portal access after trial ends.
+        </p>
+        <button
+          type="button"
+          disabled={subBusy}
+          onClick={() => void startSubscription()}
+          className="mt-4 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
+        >
+          {subBusy ? "Redirecting…" : "Subscribe with Stripe"}
+        </button>
+        {subMsg ? <p className="mt-2 text-sm text-red-300">{subMsg}</p> : null}
+      </CarrierGlassCard>
       {data ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <CarrierGlassCard glow>

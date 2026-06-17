@@ -18,9 +18,11 @@ function formatUsd(n: number) {
 export function DispatchLoadsTable({
   loads,
   compact = false,
+  onRemove,
 }: {
   loads: DashboardLoad[];
   compact?: boolean;
+  onRemove?: (dbId: string) => void | Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -81,7 +83,7 @@ export function DispatchLoadsTable({
     <div className="space-y-4">
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-accent-dim)]/20 px-4 py-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-accent)]">
-          Dispatch Sheet
+          Load board
         </p>
       </div>
 
@@ -157,6 +159,9 @@ export function DispatchLoadsTable({
                 </button>
               </th>
               <th className="whitespace-nowrap px-3 py-3 font-medium">CPAY</th>
+              {onRemove ? (
+                <th className="whitespace-nowrap px-3 py-3 font-medium">Actions</th>
+              ) : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
@@ -213,6 +218,19 @@ export function DispatchLoadsTable({
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-[var(--color-muted)]">{load.cpay}</td>
+                  {onRemove ? (
+                    <td className="whitespace-nowrap px-3 py-2.5">
+                      {load.db_id ? (
+                        <button
+                          type="button"
+                          onClick={() => void onRemove(load.db_id!)}
+                          className="rounded-lg border border-red-500/40 px-2 py-1 text-[10px] text-red-300 hover:bg-red-500/10"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </td>
+                  ) : null}
                 </tr>
               ))
             )}

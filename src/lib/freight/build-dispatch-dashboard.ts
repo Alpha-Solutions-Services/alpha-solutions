@@ -6,8 +6,13 @@ import {
   fetchDispatchSheetCsv,
   parseDispatchCsv,
 } from "./dispatch-sheet";
+import {
+  dbLoadToDashboardLoad,
+  fetchDispatchLoadsFromDb,
+} from "./dispatch-loads-db";
 import { loadCarrierRoster, loadDriverRoster } from "./dispatch-roster";
 import { createClient } from "@/lib/supabase/server";
+import { resolveActiveMonthTab } from "./dispatch-sheet-tabs";
 
 function attachLoadsToRoster(
   roster: DispatchDashboardData["carrier_roster"],
@@ -64,6 +69,79 @@ export async function buildDispatchDashboard(
     loadCarrierRoster(),
     loadDriverRoster(),
   ]);
+
+  const activeTab = requestedTab?.trim() || resolveActiveMonthTab();
+  const dbRows = await fetchDispatchLoadsFromDb(activeTab);
+
+  if (dbRows.length > 0) {
+    const loads = dbRows.map((row, i) => dbLoadToDashboardLoad(row, i));
+    const dashboard = buildDashboardFromRows(
+      dbRows.map((r, i) => ({
+        sr: String(r.sr),
+        bookedBy: r.booked_by ?? "",
+        rcDate: r.rc_date ?? "",
+        truckTrailer: r.truck_trailer ?? "",
+        companyName: r.company_name,
+        broker: r.broker ?? "",
+        loadDetails: r.load_details ?? "",
+        pickupDateTime: r.pickup_date_time ?? "",
+        deliveryDateTime: r.delivery_date_time ?? "",
+        miles: Number(r.miles) || 0,
+        loadNumber: r.load_number ?? "",
+        states: r.states ?? "",
+        rcInvoice: Number(r.rc_invoice) || 0,
+        dispatchPercent: Number(r.dispatch_percent) || 0,
+        dispatchFee: Number(r.dispatch_fee) || 0,
+        invoice: r.invoice ?? "",
+        received: Number(r.received) || 0,
+        balance: Number(r.balance) || 0,
+        notes: r.notes ?? "",
+        claim: r.claim ?? "",
+        status: r.status ?? "",
+        cpay: r.cpay ?? "",
+        dtp: r.dtp ?? "",
+        brokerAgentName: r.broker_agent_name ?? "",
+        email: r.email ?? "",
+        phone: r.phone ?? "",
+        extraNotes: "",
+      })),
+      {
+        pendingCarriers,
+        sheetConnected: true,
+        sheetSource: "supabase",
+        activeTab,
+      },
+    );
+
+    dashboard.loads = enrichLoadsWithCarrierRoster(loads, carrierRosterResult.carriers);
+    dashboard.top_bookers = buildTopBookers(
+      dashboard.loads.map((l) => ({
+        booked_by: l.booked_by,
+        rate: l.rate,
+        dispatch_fee: l.dispatch_fee,
+      })),
+    );
+    dashboard.carrier_roster = attachLoadsToRoster(
+      carrierRosterResult.carriers,
+      dashboard.loads,
+    );
+    dashboard.driver_roster = driverRoster;
+    dashboard.sheet_meta.carrier_sheet_connected = carrierRosterResult.sheetConnected;
+    dashboard.sheet_meta.source = "supabase";
+
+    const mergedCarriers = [...dashboard.carriers];
+    for (const sc of supabaseCarriers) {
+      if (!mergedCarriers.some((c) => c.company_name === sc.company_name)) {
+        mergedCarriers.push(sc);
+      }
+    }
+    dashboard.carriers = mergedCarriers;
+    dashboard.footer_stats.carriers_managed = Math.max(
+      dashboard.footer_stats.carriers_managed,
+      dashboard.carrier_roster.length,
+    );
+    return dashboard;
+  }
 
   try {
     const { csv, source, activeTab } = await fetchDispatchSheetCsv(requestedTab);

@@ -187,7 +187,7 @@ function deriveLoadStatus(row: DispatchSheetRow): string {
   return "Booked";
 }
 
-function splitRoute(loadDetails: string, states: string): { origin: string; destination: string } {
+export function splitRoute(loadDetails: string, states: string): { origin: string; destination: string } {
   if (!loadDetails && !states) return { origin: "—", destination: "—" };
   const parts = loadDetails.split(/\s*(?:→|->| to |—|-)\s*/i).filter(Boolean);
   if (parts.length >= 2) {
