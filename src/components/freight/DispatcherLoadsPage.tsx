@@ -5,7 +5,7 @@ import { useState } from "react";
 import { DispatchLoadsTable } from "@/components/freight/DispatchLoadsTable";
 import { DispatchMonthSelector } from "@/components/freight/DispatchMonthSelector";
 import { LoadAssignModal } from "@/components/freight/LoadAssignModal";
-import { LoadFormModal } from "@/components/freight/LoadFormModal";
+import { LoadFormPanel } from "@/components/freight/LoadFormModal";
 import { PortalClock } from "@/components/freight/PortalClock";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
 import type { DashboardLoad } from "@/lib/freight/dispatch-dashboard-types";
@@ -40,14 +40,12 @@ export function DispatcherLoadsPage() {
   }
   if (!data) return null;
 
-  const sourceLabel =
-    data.sheet_meta.source === "supabase"
-      ? "Supabase (editable)"
-      : data.sheet_meta.connected
-        ? "Google Sheet (read-only fallback)"
-        : "Not connected";
-
   const supabaseMode = data.sheet_meta.source === "supabase";
+  const sourceLabel = supabaseMode
+    ? "Supabase (editable)"
+    : data.sheet_meta.connected
+      ? "Google Sheet (read-only — set SUPABASE_SERVICE_ROLE_KEY to add loads)"
+      : "Not connected";
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -71,14 +69,21 @@ export function DispatcherLoadsPage() {
           {supabaseMode ? (
             <button
               type="button"
-              onClick={() => setCreateOpen(true)}
+              onClick={() => setCreateOpen((o) => !o)}
               className="rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f]"
             >
-              Add load
+              {createOpen ? "Hide form" : "Add load"}
             </button>
           ) : null}
         </div>
       </div>
+
+      {!supabaseMode ? (
+        <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          Add load is disabled because Supabase is not connected. Add{" "}
+          <code className="text-xs">SUPABASE_SERVICE_ROLE_KEY</code> in Vercel environment variables, then redeploy.
+        </p>
+      ) : null}
 
       {saveMsg ? (
         <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/50 px-4 py-3 text-sm text-[var(--color-muted)]">
@@ -86,16 +91,10 @@ export function DispatcherLoadsPage() {
         </p>
       ) : null}
 
-      <DispatchLoadsTable
-        loads={data.loads}
-        onRemove={supabaseMode ? removeLoad : undefined}
-        onAssign={supabaseMode ? setAssignLoad : undefined}
-        onEdit={supabaseMode ? setEditLoad : undefined}
-      />
-
-      {createOpen ? (
-        <LoadFormModal
+      {supabaseMode && createOpen ? (
+        <LoadFormPanel
           mode="create"
+          variant="inline"
           monthTab={activeTab}
           onClose={() => setCreateOpen(false)}
           onSaved={async (message) => {
@@ -106,9 +105,17 @@ export function DispatcherLoadsPage() {
         />
       ) : null}
 
+      <DispatchLoadsTable
+        loads={data.loads}
+        onRemove={supabaseMode ? removeLoad : undefined}
+        onAssign={supabaseMode ? setAssignLoad : undefined}
+        onEdit={supabaseMode ? setEditLoad : undefined}
+      />
+
       {editLoad ? (
-        <LoadFormModal
+        <LoadFormPanel
           mode="edit"
+          variant="modal"
           monthTab={activeTab}
           load={editLoad}
           onClose={() => setEditLoad(null)}

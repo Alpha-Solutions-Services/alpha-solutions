@@ -73,7 +73,7 @@ export type LoadInsertPayload = {
   brokerAgentName?: string;
 };
 
-function dbToSheetRow(row: DbDispatchLoad): DispatchSheetRow {
+export function dbDispatchLoadToSheetRow(row: DbDispatchLoad): DispatchSheetRow {
   return {
     sr: String(row.sr),
     bookedBy: row.booked_by ?? "",
@@ -106,7 +106,7 @@ function dbToSheetRow(row: DbDispatchLoad): DispatchSheetRow {
 }
 
 export function dbLoadToDashboardLoad(row: DbDispatchLoad, index: number): DashboardLoad {
-  const sheet = dbToSheetRow(row);
+  const sheet = dbDispatchLoadToSheetRow(row);
   const { origin, destination } = splitRoute(sheet.loadDetails, sheet.states);
   return {
     load_id: sheet.loadNumber || `LD-${sheet.sr || index + 1}`,

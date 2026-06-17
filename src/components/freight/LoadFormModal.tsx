@@ -169,11 +169,12 @@ export function formValuesToPayload(form: LoadFormValues, monthTab: string) {
   };
 }
 
-export function LoadFormModal({
+export function LoadFormPanel({
   mode,
   monthTab,
   load,
   defaultBookedBy,
+  variant = "modal",
   onClose,
   onSaved,
 }: {
@@ -181,7 +182,8 @@ export function LoadFormModal({
   monthTab: string;
   load?: DashboardLoad;
   defaultBookedBy?: string;
-  onClose: () => void;
+  variant?: "modal" | "inline";
+  onClose?: () => void;
   onSaved: (message: string) => void | Promise<void>;
 }) {
   const [form, setForm] = useState<LoadFormValues>(() =>
@@ -245,55 +247,49 @@ export function LoadFormModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-8">
-      <div className="relative w-full max-w-4xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+  const formBody = (
+    <>
+      <h2 className="text-lg font-bold text-[var(--color-text)]">
+        {mode === "create" ? "New load" : `Edit load SR-${load?.sr ?? ""}`}
+      </h2>
+      <p className="mt-1 text-xs text-[var(--color-muted)]">
+        {mode === "create"
+          ? "SR# is assigned automatically. Saves to Supabase — carrier portal updates instantly. Emails carrier (if Email is set) + dispatch team."
+          : "Saves to Supabase — reflected instantly on the carrier portal."}
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {FIELD_ROWS.map(({ key, label, required, type }) => (
+          <label key={key} className="block text-xs">
+            <span className="text-[var(--color-muted)]">
+              {label}
+              {required ? " *" : ""}
+            </span>
+            <input
+              type={type ?? "text"}
+              value={form[key]}
+              onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+              className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-2 py-1.5 text-sm"
+            />
+          </label>
+        ))}
+      </div>
+
+      <p className="mt-2 text-[10px] text-[var(--color-muted)]">
+        Calculated dispatch fee: ${computedFee.toFixed(2)} · Balance: ${computedBalance.toFixed(2)} (used on save if left blank)
+      </p>
+
+      <div className="mt-5 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          aria-label="Close"
-          onClick={onClose}
-          className="absolute right-4 top-3 text-xl text-[var(--color-muted)]"
+          disabled={busy}
+          onClick={() => void save()}
+          className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
         >
-          ×
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {mode === "create" ? "Save load" : "Save changes"}
         </button>
-        <h2 className="text-lg font-bold text-[var(--color-text)]">
-          {mode === "create" ? "New load" : `Edit load SR-${load?.sr ?? ""}`}
-        </h2>
-        <p className="mt-1 text-xs text-[var(--color-muted)]">
-          Saves to Supabase — reflected instantly on the carrier portal. Emails carrier (if Email field is set) + dispatch team.
-        </p>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {FIELD_ROWS.map(({ key, label, required, type }) => (
-            <label key={key} className="block text-xs">
-              <span className="text-[var(--color-muted)]">
-                {label}
-                {required ? " *" : ""}
-              </span>
-              <input
-                type={type ?? "text"}
-                value={form[key]}
-                onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/60 px-2 py-1.5 text-sm"
-              />
-            </label>
-          ))}
-        </div>
-
-        <p className="mt-2 text-[10px] text-[var(--color-muted)]">
-          Calculated dispatch fee: ${computedFee.toFixed(2)} · Balance: ${computedBalance.toFixed(2)} (used on save if left blank)
-        </p>
-
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void save()}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {mode === "create" ? "Save load" : "Save changes"}
-          </button>
+        {onClose ? (
           <button
             type="button"
             onClick={onClose}
@@ -301,9 +297,47 @@ export function LoadFormModal({
           >
             Cancel
           </button>
-        </div>
-        {msg ? <p className="mt-3 text-sm text-red-300">{msg}</p> : null}
+        ) : null}
+      </div>
+      {msg ? <p className="mt-3 text-sm text-red-300">{msg}</p> : null}
+    </>
+  );
+
+  if (variant === "inline") {
+    return (
+      <div className="rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-surface)]/50 p-5">
+        {formBody}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-8">
+      <div className="relative w-full max-w-5xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        {onClose ? (
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="absolute right-4 top-3 text-xl text-[var(--color-muted)]"
+          >
+            ×
+          </button>
+        ) : null}
+        {formBody}
       </div>
     </div>
   );
+}
+
+/** @deprecated use LoadFormPanel */
+export function LoadFormModal(props: {
+  mode: "create" | "edit";
+  monthTab: string;
+  load?: DashboardLoad;
+  defaultBookedBy?: string;
+  onClose: () => void;
+  onSaved: (message: string) => void | Promise<void>;
+}) {
+  return <LoadFormPanel {...props} variant="modal" />;
 }
