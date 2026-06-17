@@ -192,10 +192,13 @@ export async function middleware(request: NextRequest) {
           const { data: billing } = await supabase
             .from("profiles")
             .select(
-              "carrier_subscription_status,carrier_trial_ends_at,carrier_stripe_subscription_id",
+              "carrier_subscription_status,carrier_trial_ends_at,carrier_stripe_subscription_id,carrier_billing_mode",
             )
             .eq("id", user.id)
             .maybeSingle();
+
+          const billingFree =
+            (billing?.carrier_billing_mode as string | undefined)?.toLowerCase() === "free";
 
           const status = billing?.carrier_subscription_status?.toLowerCase();
           const trialEnd = billing?.carrier_trial_ends_at
@@ -204,7 +207,7 @@ export async function middleware(request: NextRequest) {
           const trialActive =
             trialEnd && !Number.isNaN(trialEnd.getTime()) && trialEnd.getTime() > Date.now();
           const subActive =
-            status === "active" || status === "trialing" || trialActive;
+            billingFree || status === "active" || status === "trialing" || trialActive;
 
           if (!subActive) {
             const n = request.nextUrl.clone();

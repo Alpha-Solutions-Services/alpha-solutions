@@ -386,6 +386,30 @@ export async function sendLoadActionDispatcherEmail(params: {
   });
 }
 
+export async function sendDispatcherMessageToCarrierEmail(params: {
+  to: string;
+  carrierName: string;
+  dispatcherName: string;
+  message: string;
+  portalUrl: string;
+}) {
+  const html = brandedEmailWrap(
+    "Message from dispatch",
+    `<p>Hi ${escapeHtml(params.carrierName)},</p>
+     <p><strong>${escapeHtml(params.dispatcherName)}</strong> sent you a message:</p>
+     <blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #38a3ff;background:#0b111f;border-radius:8px;color:#e8f0ff;">
+       ${escapeHtml(params.message).replace(/\n/g, "<br>")}
+     </blockquote>
+     ${cta("Open carrier portal chat", params.portalUrl)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `Message from Alpha Dispatch — ${params.dispatcherName}`,
+    html,
+    text: `${params.dispatcherName}: ${params.message}\n\nView: ${params.portalUrl}`,
+  });
+}
+
 function escapeHtml(s: string) {
   return s
     .replaceAll("&", "&amp;")

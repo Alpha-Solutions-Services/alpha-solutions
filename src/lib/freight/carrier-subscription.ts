@@ -3,15 +3,22 @@ export type CarrierProfileSubscription = {
   carrier_trial_ends_at?: string | null;
   carrier_stripe_subscription_id?: string | null;
   carrier_status?: string | null;
+  carrier_billing_mode?: string | null;
   role?: string | null;
 };
 
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
 
+export function carrierHasFreeBilling(profile: CarrierProfileSubscription): boolean {
+  return profile.carrier_billing_mode?.toLowerCase() === "free";
+}
+
 export function carrierHasPortalAccess(profile: CarrierProfileSubscription): boolean {
   if (profile.role !== "carrier" || profile.carrier_status !== "verified") {
     return false;
   }
+
+  if (carrierHasFreeBilling(profile)) return true;
 
   const status = profile.carrier_subscription_status?.toLowerCase();
   if (status && ACTIVE_STATUSES.has(status)) return true;

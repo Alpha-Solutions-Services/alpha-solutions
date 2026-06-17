@@ -50,7 +50,7 @@ export function DispatcherSidebar({ email }: { email: string }) {
             <p className="truncate text-sm font-semibold text-[var(--color-text)]">
               Alpha Freight
             </p>
-            <p className="truncate text-xs text-[var(--color-muted)]">Dispatcher HQ</p>
+            <p className="truncate text-xs text-[var(--color-muted)]">Dispatcher Super Admin</p>
           </div>
         </div>
         <div className="mt-4">

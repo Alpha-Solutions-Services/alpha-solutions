@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DispatcherCarrierReview } from "@/components/freight/DispatcherCarrierReview";
+import { DispatcherCarrierManage } from "@/components/freight/DispatcherCarrierManage";
 import { DispatcherCarrierRoster } from "@/components/freight/DispatcherCarrierRoster";
 
 export const metadata: Metadata = {
@@ -23,6 +24,8 @@ function CarriersContent({ showAdd }: { showAdd: boolean }) {
       </div>
 
       <DispatcherCarrierRoster showAdd={showAdd} />
+
+      <DispatcherCarrierManage />
 
       <section className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5 sm:p-8">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-accent)]">

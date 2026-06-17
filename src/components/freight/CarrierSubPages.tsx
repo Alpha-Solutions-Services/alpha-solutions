@@ -214,7 +214,7 @@ export function CarrierPaymentsPage() {
       <CarrierGlassCard glow className="mb-6">
         <p className="text-sm font-semibold text-[var(--color-text)]">Carrier portal subscription</p>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
-          $10/month after a <strong className="text-[var(--color-text)]">7-day free trial</strong>. Required for portal access after trial ends.
+          $10/month after a <strong className="text-[var(--color-text)]">7-day free trial</strong>, unless dispatch grants you free access.
         </p>
         <button
           type="button"
@@ -355,15 +355,93 @@ export function CarrierCompliancePage() {
 
 export function CarrierChatPage() {
   const { data, loading, company } = useCarrierPage();
+  const [messages, setMessages] = useState<
+    { id: string; created_at: string; sender_role: string; body: string }[]
+  >([]);
+  const [reply, setReply] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatMsg, setChatMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await fetch("/api/freight/carrier/messages");
+      const json = (await res.json()) as {
+        messages?: { id: string; created_at: string; sender_role: string; body: string }[];
+      };
+      if (res.ok) setMessages(json.messages ?? []);
+    })();
+  }, []);
+
+  async function sendReply() {
+    if (!reply.trim()) return;
+    setChatBusy(true);
+    setChatMsg(null);
+    try {
+      const res = await fetch("/api/freight/carrier/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: reply.trim() }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Send failed");
+      setReply("");
+      const refresh = await fetch("/api/freight/carrier/messages");
+      const body = (await refresh.json()) as { messages?: typeof messages };
+      setMessages(body.messages ?? []);
+      setChatMsg("Message sent to dispatch.");
+    } catch (e) {
+      setChatMsg(e instanceof Error ? e.message : "Could not send");
+    } finally {
+      setChatBusy(false);
+    }
+  }
+
   return (
     <CarrierPageShell title="Dispatcher Chat" loading={loading && !data} companyName={company}>
       {data ? (
         <div className="grid gap-4 lg:grid-cols-3">
           <CarrierGlassCard className="lg:col-span-2" glow>
-            <div className="flex h-64 flex-col justify-end rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 p-4">
-              <p className="text-sm text-[var(--color-muted)]">
-                Live chat with your dispatcher — coming soon. Use contact options below.
-              </p>
+            <div className="flex h-64 flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 p-4">
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {messages.length === 0 ? (
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Messages from your dispatcher appear here. You also get email when dispatch writes you.
+                  </p>
+                ) : (
+                  messages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={
+                        m.sender_role === "dispatcher"
+                          ? "rounded-lg bg-[var(--color-accent-dim)] px-3 py-2 text-sm"
+                          : "ml-8 rounded-lg bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-muted)]"
+                      }
+                    >
+                      <p className="text-[10px] uppercase opacity-70">
+                        {m.sender_role} · {new Date(m.created_at).toLocaleString()}
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <input
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
+                  placeholder="Reply to dispatch…"
+                  className="dispatch-field flex-1 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  disabled={chatBusy || !reply.trim()}
+                  onClick={() => void sendReply()}
+                  className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </div>
+              {chatMsg ? <p className="mt-2 text-xs text-[var(--color-muted)]">{chatMsg}</p> : null}
             </div>
           </CarrierGlassCard>
           <CarrierGlassCard>
