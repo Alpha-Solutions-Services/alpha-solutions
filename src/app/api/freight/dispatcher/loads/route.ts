@@ -13,33 +13,51 @@ import {
   sendLoadAssignedToDriverEmail,
   sendLoadDriverAssignedCarrierEmail,
   sendLoadRemovedEmail,
+  sendLoadUpdatedEmail,
 } from "@/lib/freight/emails";
 import { resolveProfileEmail, resolveProfileName } from "@/lib/freight/load-documents";
+import {
+  notifyDispatchRecipients,
+  resolveLoadCarrierEmail,
+} from "@/lib/freight/load-notifications";
 import { resolveActiveMonthTab } from "@/lib/freight/dispatch-sheet-tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
-import { FREIGHT_TEAM_EMAIL } from "@/lib/freight/constants";
 
-const createSchema = z.object({
+const loadFieldsSchema = z.object({
   monthTab: z.string().min(3).max(40).optional(),
   companyName: z.string().min(1).max(200),
+  bookedBy: z.string().max(120).optional(),
+  rcDate: z.string().max(40).optional(),
+  truckTrailer: z.string().max(120).optional(),
   broker: z.string().max(200).optional(),
   loadDetails: z.string().max(500).optional(),
   pickupDateTime: z.string().max(120).optional(),
   deliveryDateTime: z.string().max(120).optional(),
   miles: z.number().min(0).max(99999).optional(),
   loadNumber: z.string().max(80).optional(),
+  states: z.string().max(80).optional(),
   rcInvoice: z.number().min(0).max(9999999).optional(),
   dispatchPercent: z.number().min(0).max(100).optional(),
-  status: z.string().max(40).optional(),
-  carrierProfileId: z.string().uuid().optional(),
-  assignedDriverProfileId: z.string().uuid().optional(),
-});
-
-const patchSchema = createSchema.partial().extend({
-  id: z.string().uuid(),
+  dispatchFee: z.number().min(0).max(9999999).optional(),
+  invoice: z.string().max(40).optional(),
   received: z.number().min(0).optional(),
   balance: z.number().min(0).optional(),
+  notes: z.string().max(500).optional(),
+  claim: z.string().max(200).optional(),
+  status: z.string().max(40).optional(),
+  cpay: z.string().max(80).optional(),
+  dtp: z.string().max(80).optional(),
+  brokerAgentName: z.string().max(120).optional(),
+  email: z.string().max(200).optional(),
+  phone: z.string().max(40).optional(),
+  carrierProfileId: z.string().uuid().optional(),
+  assignedDriverProfileId: z.string().uuid().nullable().optional(),
+});
+
+const createSchema = loadFieldsSchema;
+const patchSchema = loadFieldsSchema.partial().extend({
+  id: z.string().uuid(),
 });
 
 async function requireDispatcher(req: NextRequest) {
@@ -62,31 +80,61 @@ async function requireDispatcher(req: NextRequest) {
   return { user };
 }
 
-async function resolveCarrierEmail(
-  companyName: string,
-  carrierProfileId?: string,
-): Promise<string | null> {
-  const admin = getServiceRoleClient();
-  if (!admin) return null;
+async function notifyCarrierIfEmail(opts: {
+  loadEmail?: string;
+  carrierName: string;
+  loadNumber: string;
+  broker?: string;
+  pickup?: string;
+  kind: "added" | "updated" | "removed";
+}): Promise<boolean> {
+  const to = resolveLoadCarrierEmail(opts.loadEmail);
+  if (!to) return false;
 
-  if (carrierProfileId) {
-    const { data } = await admin
-      .from("profiles")
-      .select("email")
-      .eq("id", carrierProfileId)
-      .maybeSingle();
-    if (data?.email) return data.email as string;
+  if (opts.kind === "added") {
+    await sendLoadAddedEmail({
+      to,
+      carrierName: opts.carrierName,
+      loadNumber: opts.loadNumber,
+      broker: opts.broker ?? "",
+      pickup: opts.pickup ?? "",
+    });
+  } else if (opts.kind === "updated") {
+    await sendLoadUpdatedEmail({
+      to,
+      carrierName: opts.carrierName,
+      loadNumber: opts.loadNumber,
+      broker: opts.broker ?? "",
+      pickup: opts.pickup ?? "",
+    });
+  } else {
+    await sendLoadRemovedEmail({
+      to,
+      carrierName: opts.carrierName,
+      loadNumber: opts.loadNumber,
+    });
   }
+  return true;
+}
 
-  const { data: roster } = await admin
-    .from("dispatch_carrier_roster")
-    .select("email")
-    .ilike("company_name", companyName)
-    .eq("active", true)
-    .limit(1)
-    .maybeSingle();
-
-  return (roster?.email as string) || null;
+async function notifyDispatchLoadAction(opts: {
+  actorEmail?: string | null;
+  action: "added" | "removed" | "updated";
+  loadNumber: string;
+  carrierName: string;
+}): Promise<boolean> {
+  let sent = false;
+  await notifyDispatchRecipients(opts.actorEmail, async (to) => {
+    await sendLoadActionDispatcherEmail({
+      to,
+      action: opts.action,
+      loadNumber: opts.loadNumber,
+      carrierName: opts.carrierName,
+      actorEmail: opts.actorEmail ?? "dispatcher",
+    });
+    sent = true;
+  });
+  return sent;
 }
 
 export async function POST(req: NextRequest) {
@@ -101,18 +149,32 @@ export async function POST(req: NextRequest) {
       {
         monthTab,
         companyName: body.companyName,
+        bookedBy: body.bookedBy ?? auth.user.email ?? "Dispatcher",
+        rcDate: body.rcDate,
+        truckTrailer: body.truckTrailer,
         broker: body.broker,
         loadDetails: body.loadDetails,
         pickupDateTime: body.pickupDateTime,
         deliveryDateTime: body.deliveryDateTime,
         miles: body.miles,
         loadNumber: body.loadNumber,
+        states: body.states,
         rcInvoice: body.rcInvoice,
         dispatchPercent: body.dispatchPercent ?? 5,
+        dispatchFee: body.dispatchFee,
+        invoice: body.invoice,
+        received: body.received,
+        balance: body.balance,
+        notes: body.notes,
+        claim: body.claim,
         status: body.status ?? "Unpaid",
+        cpay: body.cpay,
+        dtp: body.dtp,
+        brokerAgentName: body.brokerAgentName,
+        email: body.email,
+        phone: body.phone,
         carrierProfileId: body.carrierProfileId,
-        assignedDriverProfileId: body.assignedDriverProfileId,
-        bookedBy: auth.user.email ?? "Dispatcher",
+        assignedDriverProfileId: body.assignedDriverProfileId ?? undefined,
       },
       auth.user.id,
     );
@@ -121,31 +183,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Could not save load" }, { status: 500 });
     }
 
-    const carrierEmail = await resolveCarrierEmail(body.companyName, body.carrierProfileId);
     const loadNo = body.loadNumber || `SR-${result.sr}`;
 
-    if (carrierEmail) {
-      await sendLoadAddedEmail({
-        to: carrierEmail,
-        carrierName: body.companyName,
-        loadNumber: loadNo,
-        broker: body.broker ?? "",
-        pickup: body.pickupDateTime ?? "",
-      }).catch(() => {});
-    }
+    const carrierNotified = await notifyCarrierIfEmail({
+      loadEmail: body.email,
+      carrierName: body.companyName,
+      loadNumber: loadNo,
+      broker: body.broker,
+      pickup: body.pickupDateTime,
+      kind: "added",
+    }).catch(() => false);
 
-    const teamEmail = FREIGHT_TEAM_EMAIL || auth.user.email;
-    if (teamEmail) {
-      await sendLoadActionDispatcherEmail({
-        to: teamEmail,
-        action: "added",
-        loadNumber: loadNo,
-        carrierName: body.companyName,
-        actorEmail: auth.user.email ?? "dispatcher",
-      }).catch(() => {});
-    }
+    const dispatcherNotified = await notifyDispatchLoadAction({
+      actorEmail: auth.user.email,
+      action: "added",
+      loadNumber: loadNo,
+      carrierName: body.companyName,
+    }).catch(() => false);
 
-    return NextResponse.json({ ok: true, id: result.id, sr: result.sr });
+    return NextResponse.json({
+      ok: true,
+      id: result.id,
+      sr: result.sr,
+      carrierNotified,
+      dispatcherNotified,
+    });
   } catch (e) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -164,22 +226,22 @@ export async function PATCH(req: NextRequest) {
     const admin = getServiceRoleClient();
 
     let previousDriverId: string | null = null;
-    type LoadAssignMeta = {
+    type LoadMeta = {
       load_number: string | null;
       sr: number;
       company_name: string;
       pickup_date_time: string | null;
       delivery_date_time: string | null;
-      carrier_profile_id: string | null;
       email: string | null;
+      broker: string | null;
     };
-    let loadMeta: LoadAssignMeta | null = null;
+    let loadMeta: LoadMeta | null = null;
 
-    if (admin && body.assignedDriverProfileId !== undefined) {
+    if (admin) {
       const { data: row } = await admin
         .from("dispatch_loads")
         .select(
-          "assigned_driver_profile_id, load_number, sr, company_name, pickup_date_time, delivery_date_time, carrier_profile_id, email",
+          "assigned_driver_profile_id, load_number, sr, company_name, pickup_date_time, delivery_date_time, email, broker",
         )
         .eq("id", body.id)
         .maybeSingle();
@@ -191,8 +253,8 @@ export async function PATCH(req: NextRequest) {
           company_name: row.company_name as string,
           pickup_date_time: row.pickup_date_time as string | null,
           delivery_date_time: row.delivery_date_time as string | null,
-          carrier_profile_id: row.carrier_profile_id as string | null,
           email: row.email as string | null,
+          broker: row.broker as string | null,
         };
       }
     }
@@ -200,12 +262,43 @@ export async function PATCH(req: NextRequest) {
     const ok = await updateDispatchLoad(body.id, body);
     if (!ok) return NextResponse.json({ error: "Update failed" }, { status: 500 });
 
+    const loadNo =
+      body.loadNumber ||
+      loadMeta?.load_number ||
+      (loadMeta ? `SR-${loadMeta.sr}` : "—");
+    const company = body.companyName || loadMeta?.company_name || "—";
+    const loadEmail = body.email ?? loadMeta?.email ?? undefined;
+
+    const isDriverAssignOnly =
+      body.assignedDriverProfileId !== undefined &&
+      Object.keys(body).filter((k) => k !== "id" && k !== "assignedDriverProfileId").length === 0;
+
+    let carrierNotified = false;
+    let dispatcherNotified = false;
+
+    if (!isDriverAssignOnly) {
+      carrierNotified = await notifyCarrierIfEmail({
+        loadEmail,
+        carrierName: company,
+        loadNumber: loadNo,
+        broker: body.broker ?? loadMeta?.broker ?? "",
+        pickup: body.pickupDateTime ?? loadMeta?.pickup_date_time ?? "",
+        kind: "updated",
+      }).catch(() => false);
+
+      dispatcherNotified = await notifyDispatchLoadAction({
+        actorEmail: auth.user.email,
+        action: "updated",
+        loadNumber: loadNo,
+        carrierName: company,
+      }).catch(() => false);
+    }
+
     if (
       loadMeta &&
       body.assignedDriverProfileId &&
       body.assignedDriverProfileId !== previousDriverId
     ) {
-      const loadNo = loadMeta.load_number || `SR-${loadMeta.sr}`;
       const driverEmail = await resolveProfileEmail(body.assignedDriverProfileId);
       const driverName = await resolveProfileName(body.assignedDriverProfileId);
 
@@ -219,13 +312,7 @@ export async function PATCH(req: NextRequest) {
         }).catch(() => {});
       }
 
-      const carrierEmail =
-        loadMeta.email ||
-        (await resolveCarrierEmail(
-          loadMeta.company_name,
-          loadMeta.carrier_profile_id ?? undefined,
-        ));
-
+      const carrierEmail = resolveLoadCarrierEmail(loadEmail);
       if (carrierEmail) {
         await sendLoadDriverAssignedCarrierEmail({
           to: carrierEmail,
@@ -233,10 +320,11 @@ export async function PATCH(req: NextRequest) {
           loadNumber: loadNo,
           driverName,
         }).catch(() => {});
+        carrierNotified = true;
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, carrierNotified, dispatcherNotified });
   } catch (e) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -259,7 +347,7 @@ export async function DELETE(req: NextRequest) {
 
   const { data: row } = await admin
     .from("dispatch_loads")
-    .select("company_name, load_number, sr, carrier_profile_id, email")
+    .select("company_name, load_number, sr, email")
     .eq("id", id)
     .maybeSingle();
 
@@ -269,28 +357,22 @@ export async function DELETE(req: NextRequest) {
   if (row) {
     const loadNo = (row.load_number as string) || `SR-${row.sr}`;
     const company = row.company_name as string;
-    const email =
-      (row.email as string) ||
-      (await resolveCarrierEmail(company, row.carrier_profile_id as string | undefined));
 
-    if (email) {
-      await sendLoadRemovedEmail({
-        to: email,
-        carrierName: company,
-        loadNumber: loadNo,
-      }).catch(() => {});
-    }
+    const carrierNotified = await notifyCarrierIfEmail({
+      loadEmail: row.email as string,
+      carrierName: company,
+      loadNumber: loadNo,
+      kind: "removed",
+    }).catch(() => false);
 
-    const teamEmail = FREIGHT_TEAM_EMAIL || auth.user.email;
-    if (teamEmail) {
-      await sendLoadActionDispatcherEmail({
-        to: teamEmail,
-        action: "removed",
-        loadNumber: loadNo,
-        carrierName: company,
-        actorEmail: auth.user.email ?? "dispatcher",
-      }).catch(() => {});
-    }
+    const dispatcherNotified = await notifyDispatchLoadAction({
+      actorEmail: auth.user.email,
+      action: "removed",
+      loadNumber: loadNo,
+      carrierName: company,
+    }).catch(() => false);
+
+    return NextResponse.json({ ok: true, carrierNotified, dispatcherNotified });
   }
 
   return NextResponse.json({ ok: true });

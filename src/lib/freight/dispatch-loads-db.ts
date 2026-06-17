@@ -1,5 +1,6 @@
 import type { DashboardLoad, DispatchSheetRow } from "./dispatch-dashboard-types";
 import { splitRoute } from "./dispatch-sheet";
+import { computeBalance, computeDispatchFee } from "./load-notifications";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { sanitizeMoney, sanitizeText } from "./api-security";
 
@@ -60,7 +61,16 @@ export type LoadInsertPayload = {
   email?: string;
   phone?: string;
   carrierProfileId?: string;
-  assignedDriverProfileId?: string;
+  assignedDriverProfileId?: string | null;
+  rcDate?: string;
+  invoice?: string;
+  received?: number;
+  balance?: number;
+  notes?: string;
+  claim?: string;
+  cpay?: string;
+  dtp?: string;
+  brokerAgentName?: string;
 };
 
 function dbToSheetRow(row: DbDispatchLoad): DispatchSheetRow {
@@ -124,6 +134,7 @@ export function dbLoadToDashboardLoad(row: DbDispatchLoad, index: number): Dashb
     claim: sheet.claim || "—",
     status: sheet.status || "Unpaid",
     cpay: sheet.cpay || "—",
+    dtp: sheet.dtp || "—",
     broker_agent: sheet.brokerAgentName || "—",
     email: sheet.email || "—",
     phone: sheet.phone || "—",
@@ -218,18 +229,6 @@ async function nextSrForTab(monthTab: string): Promise<number> {
   return (typeof max === "number" ? max : 0) + 1;
 }
 
-function computeDispatchFeeFromPayload(
-  rcInvoice: number,
-  dispatchPercent: number,
-  dispatchFee?: number,
-): number {
-  if (dispatchFee && dispatchFee > 0) return dispatchFee;
-  if (rcInvoice > 0 && dispatchPercent > 0) {
-    return Math.round((rcInvoice * dispatchPercent) / 100 * 100) / 100;
-  }
-  return 0;
-}
-
 export async function insertDispatchLoad(
   payload: LoadInsertPayload,
   createdBy: string,
@@ -239,11 +238,9 @@ export async function insertDispatchLoad(
 
   const rcInvoice = sanitizeMoney(payload.rcInvoice ?? 0);
   const dispatchPercent = sanitizeMoney(payload.dispatchPercent ?? 5);
-  const fee = computeDispatchFeeFromPayload(
-    rcInvoice,
-    dispatchPercent,
-    payload.dispatchFee,
-  );
+  const fee = computeDispatchFee(rcInvoice, dispatchPercent, payload.dispatchFee);
+  const received = sanitizeMoney(payload.received ?? 0);
+  const balance = payload.balance != null ? sanitizeMoney(payload.balance) : computeBalance(fee, received);
   const sr = await nextSrForTab(payload.monthTab);
 
   const { data, error } = await admin
@@ -268,15 +265,25 @@ export async function insertDispatchLoad(
       dispatch_percent: dispatchPercent,
       dispatch_fee: fee,
       status: payload.status ? sanitizeText(payload.status, 40) : "Unpaid",
-      balance: fee,
+      balance,
+      received,
       booked_by: payload.bookedBy ? sanitizeText(payload.bookedBy, 120) : null,
       truck_trailer: payload.truckTrailer ? sanitizeText(payload.truckTrailer, 120) : null,
       email: payload.email ? sanitizeText(payload.email, 200) : null,
       phone: payload.phone ? sanitizeText(payload.phone, 40) : null,
       carrier_profile_id: payload.carrierProfileId ?? null,
       assigned_driver_profile_id: payload.assignedDriverProfileId ?? null,
-      rc_date: new Date().toLocaleDateString("en-US"),
-      invoice: "Pending",
+      rc_date: payload.rcDate
+        ? sanitizeText(payload.rcDate, 40)
+        : new Date().toLocaleDateString("en-US"),
+      invoice: payload.invoice ? sanitizeText(payload.invoice, 40) : "Pending",
+      notes: payload.notes ? sanitizeText(payload.notes, 500) : null,
+      claim: payload.claim ? sanitizeText(payload.claim, 200) : null,
+      cpay: payload.cpay ? sanitizeText(payload.cpay, 80) : null,
+      dtp: payload.dtp ? sanitizeText(payload.dtp, 80) : null,
+      broker_agent_name: payload.brokerAgentName
+        ? sanitizeText(payload.brokerAgentName, 120)
+        : null,
     })
     .select("id,sr")
     .single();
@@ -308,6 +315,12 @@ export async function updateDispatchLoad(
   const admin = getServiceRoleClient();
   if (!admin) return false;
 
+  const { data: existing } = await admin
+    .from("dispatch_loads")
+    .select("rc_invoice, dispatch_percent, dispatch_fee, received")
+    .eq("id", id)
+    .maybeSingle();
+
   const row: Record<string, unknown> = {};
   if (patch.companyName !== undefined) row.company_name = sanitizeText(patch.companyName, 200);
   if (patch.broker !== undefined) row.broker = sanitizeText(patch.broker, 200);
@@ -320,15 +333,66 @@ export async function updateDispatchLoad(
   }
   if (patch.miles !== undefined) row.miles = sanitizeMoney(patch.miles);
   if (patch.loadNumber !== undefined) row.load_number = sanitizeText(patch.loadNumber, 80);
+  if (patch.states !== undefined) row.states = sanitizeText(patch.states, 80);
   if (patch.rcInvoice !== undefined) row.rc_invoice = sanitizeMoney(patch.rcInvoice);
   if (patch.dispatchPercent !== undefined) {
     row.dispatch_percent = sanitizeMoney(patch.dispatchPercent);
   }
+  if (patch.dispatchFee !== undefined) row.dispatch_fee = sanitizeMoney(patch.dispatchFee);
   if (patch.status !== undefined) row.status = sanitizeText(patch.status, 40);
   if (patch.received !== undefined) row.received = sanitizeMoney(patch.received);
   if (patch.balance !== undefined) row.balance = sanitizeMoney(patch.balance);
+  if (patch.bookedBy !== undefined) row.booked_by = sanitizeText(patch.bookedBy, 120);
+  if (patch.truckTrailer !== undefined) {
+    row.truck_trailer = sanitizeText(patch.truckTrailer, 120);
+  }
+  if (patch.email !== undefined) row.email = patch.email ? sanitizeText(patch.email, 200) : null;
+  if (patch.phone !== undefined) row.phone = patch.phone ? sanitizeText(patch.phone, 40) : null;
+  if (patch.rcDate !== undefined) row.rc_date = sanitizeText(patch.rcDate, 40);
+  if (patch.invoice !== undefined) row.invoice = sanitizeText(patch.invoice, 40);
+  if (patch.notes !== undefined) row.notes = patch.notes ? sanitizeText(patch.notes, 500) : null;
+  if (patch.claim !== undefined) row.claim = patch.claim ? sanitizeText(patch.claim, 200) : null;
+  if (patch.cpay !== undefined) row.cpay = patch.cpay ? sanitizeText(patch.cpay, 80) : null;
+  if (patch.dtp !== undefined) row.dtp = patch.dtp ? sanitizeText(patch.dtp, 80) : null;
+  if (patch.brokerAgentName !== undefined) {
+    row.broker_agent_name = patch.brokerAgentName
+      ? sanitizeText(patch.brokerAgentName, 120)
+      : null;
+  }
   if (patch.assignedDriverProfileId !== undefined) {
     row.assigned_driver_profile_id = patch.assignedDriverProfileId || null;
+  }
+
+  const rcInvoice =
+    patch.rcInvoice !== undefined
+      ? sanitizeMoney(patch.rcInvoice)
+      : Number(existing?.rc_invoice) || 0;
+  const dispatchPercent =
+    patch.dispatchPercent !== undefined
+      ? sanitizeMoney(patch.dispatchPercent)
+      : Number(existing?.dispatch_percent) || 0;
+  const received =
+    patch.received !== undefined
+      ? sanitizeMoney(patch.received)
+      : Number(existing?.received) || 0;
+
+  if (
+    patch.rcInvoice !== undefined ||
+    patch.dispatchPercent !== undefined ||
+    patch.dispatchFee !== undefined
+  ) {
+    const fee = computeDispatchFee(
+      rcInvoice,
+      dispatchPercent,
+      patch.dispatchFee !== undefined ? patch.dispatchFee : Number(existing?.dispatch_fee) || 0,
+    );
+    row.dispatch_fee = fee;
+    if (patch.balance === undefined) {
+      row.balance = computeBalance(fee, received);
+    }
+  } else if (patch.received !== undefined && patch.balance === undefined) {
+    const fee = Number(existing?.dispatch_fee) || 0;
+    row.balance = computeBalance(fee, received);
   }
 
   const { error } = await admin.from("dispatch_loads").update(row).eq("id", id);

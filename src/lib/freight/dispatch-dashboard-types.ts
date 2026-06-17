@@ -80,6 +80,7 @@ export type DashboardLoad = {
   claim: string;
   status: string;
   cpay: string;
+  dtp: string;
   broker_agent: string;
   email: string;
   phone: string;

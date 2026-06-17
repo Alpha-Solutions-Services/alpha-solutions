@@ -391,6 +391,7 @@ export function buildDashboardFromRows(
       claim: row.claim || "—",
       status: row.status || deriveLoadStatus(row),
       cpay: row.cpay || "—",
+      dtp: row.dtp || "—",
       broker_agent: row.brokerAgentName || "—",
       email: row.email || "—",
       phone: row.phone || "—",

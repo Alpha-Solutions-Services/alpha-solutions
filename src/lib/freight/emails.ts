@@ -324,6 +324,31 @@ export async function sendLoadRemovedEmail(params: {
   });
 }
 
+export async function sendLoadUpdatedEmail(params: {
+  to: string;
+  carrierName: string;
+  loadNumber: string;
+  broker: string;
+  pickup: string;
+}) {
+  const html = brandedEmailWrap(
+    "Load updated",
+    `<p>Hi ${escapeHtml(params.carrierName)},</p>
+     <p>Load <strong>#${escapeHtml(params.loadNumber)}</strong> was updated by dispatch:</p>
+     <ul>
+       <li><strong>Broker:</strong> ${escapeHtml(params.broker || "—")}</li>
+       <li><strong>Pickup:</strong> ${escapeHtml(params.pickup || "—")}</li>
+     </ul>
+     ${cta("View in Carrier Portal", `${PUBLIC_SITE_URL}/freight/carrier/loads`)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `Load updated — ${params.loadNumber}`,
+    html,
+    text: `Load ${params.loadNumber} updated for ${params.carrierName}.`,
+  });
+}
+
 export async function sendDriverAddedToCarrierEmail(params: {
   to: string;
   carrierName: string;
@@ -368,12 +393,12 @@ export async function sendFridayInvoiceReminderEmail(params: {
 
 export async function sendLoadActionDispatcherEmail(params: {
   to: string;
-  action: "added" | "removed";
+  action: "added" | "removed" | "updated";
   loadNumber: string;
   carrierName: string;
   actorEmail: string;
 }) {
-  const verb = params.action === "added" ? "added" : "removed";
+  const verb = params.action === "added" ? "added" : params.action === "removed" ? "removed" : "updated";
   const html = brandedEmailWrap(
     `Load ${verb}`,
     `<p>Dispatch log: load <strong>#${escapeHtml(params.loadNumber)}</strong> for <strong>${escapeHtml(params.carrierName)}</strong> was ${verb} by ${escapeHtml(params.actorEmail)}.</p>`,
