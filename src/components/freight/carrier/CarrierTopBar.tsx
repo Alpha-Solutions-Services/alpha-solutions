@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Mail, Menu } from "lucide-react";
+import { PortalClock } from "@/components/freight/PortalClock";
 
 export function CarrierTopBar({ title, companyName }: { title: string; companyName: string }) {
   return (
@@ -15,6 +16,9 @@ export function CarrierTopBar({ title, companyName }: { title: string; companyNa
         </h1>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        <div className="hidden sm:block">
+          <PortalClock compact />
+        </div>
         <button
           type="button"
           className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-muted)] hover:text-[var(--color-accent)]"

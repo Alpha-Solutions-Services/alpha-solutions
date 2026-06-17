@@ -15,6 +15,7 @@ import {
 import { FleetDonutChart, RevenueLineChart } from "@/components/freight/DispatchCharts";
 import { DispatchLoadsTable } from "@/components/freight/DispatchLoadsTable";
 import { DispatchMonthSelector } from "@/components/freight/DispatchMonthSelector";
+import { PortalClock } from "@/components/freight/PortalClock";
 import { TopBookersPanel } from "@/components/freight/TopBookersPanel";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
 import type { SummaryCard } from "@/lib/freight/dispatch-dashboard-types";
@@ -124,6 +125,7 @@ export function DispatcherDashboardClient() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <PortalClock compact />
           <DispatchMonthSelector
             value={activeTab}
             options={data.sheet_meta.available_tabs}

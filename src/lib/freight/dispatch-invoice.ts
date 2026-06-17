@@ -94,12 +94,74 @@ function formatPickupDelivery(value: string): string {
   return value.trim();
 }
 
+function normalizeStatus(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 function computeDispatchFee(load: DashboardLoad): number {
   if (load.dispatch_fee > 0) return load.dispatch_fee;
   if (load.rate > 0 && load.dispatch_percent > 0) {
     return Math.round((load.rate * load.dispatch_percent) / 100 * 100) / 100;
   }
   return 0;
+}
+
+function isUnpaidStatus(status: string): boolean {
+  const s = normalizeStatus(status);
+  if (!s || s === "—" || s === "-") return false;
+  return s === "unpaid" || s.includes("unpaid") || s.includes("pending") || s.includes("due");
+}
+
+function isPartialStatus(status: string): boolean {
+  const s = normalizeStatus(status);
+  return s.includes("partial") || s.includes("part paid") || s.includes("partly");
+}
+
+function isPaidStatus(status: string): boolean {
+  const s = normalizeStatus(status);
+  if (!s || s === "—" || s === "-") return false;
+  if (isUnpaidStatus(s) || isPartialStatus(s)) return false;
+  return s === "paid" || s.includes("paid in full") || s.startsWith("paid");
+}
+
+/** True when the sheet STATUS / invoice column shows this dispatch fee is fully paid. */
+export function isDispatchFeePaid(load: DashboardLoad): boolean {
+  const status = load.status;
+  const invoiceStatus = load.invoice_status;
+
+  if (isUnpaidStatus(status) || isUnpaidStatus(invoiceStatus)) return false;
+  if (isPartialStatus(status) || isPartialStatus(invoiceStatus)) return false;
+
+  if (isPaidStatus(status) || isPaidStatus(invoiceStatus)) return true;
+
+  const fee = computeDispatchFee(load);
+  if (fee <= 0) return true;
+  if (load.balance > 0) return false;
+  if (load.received >= fee && load.received > 0) return true;
+
+  return false;
+}
+
+/** Remaining dispatch fee to bill — excludes fully paid loads; partial uses balance or received. */
+export function computeOutstandingDispatchFee(load: DashboardLoad): number {
+  const fee = computeDispatchFee(load);
+  if (fee <= 0) return 0;
+  if (isDispatchFeePaid(load)) return 0;
+
+  if (load.balance > 0) {
+    return Math.round(Math.min(load.balance, fee) * 100) / 100;
+  }
+
+  if (
+    isPartialStatus(load.status) ||
+    isPartialStatus(load.invoice_status) ||
+    load.received > 0
+  ) {
+    const remaining = fee - Math.max(load.received, 0);
+    return Math.max(0, Math.round(remaining * 100) / 100);
+  }
+
+  return fee;
 }
 
 function formatMoneyUsd(n: number): string {
@@ -155,14 +217,7 @@ export function resolveCarrierName(load: DashboardLoad): string {
 
 export function isInvoiceableLoad(load: DashboardLoad): boolean {
   if (!resolveCarrierName(load)) return false;
-
-  const fee = computeDispatchFee(load);
-  const unpaid =
-    load.status.toLowerCase() === "unpaid" ||
-    load.invoice_status.toLowerCase() === "pending" ||
-    load.balance > 0;
-
-  return fee > 0 || load.dispatch_percent > 0 || unpaid || load.rate > 0;
+  return computeOutstandingDispatchFee(load) > 0;
 }
 
 export function groupLoadsByCarrier(loads: DashboardLoad[]): Map<string, DashboardLoad[]> {
@@ -213,22 +268,24 @@ export function buildCarrierInvoices(
     const rosterEntry = lookupCarrierContact(rosterIndex, carrierName);
     const carrierEmail = resolveCarrierEmail(carrierLoads, rosterIndex);
 
-    const lineItems: InvoiceLineItem[] = carrierLoads.map((load) => {
-      const amount = computeDispatchFee(load);
-      return {
-        loadNumber:
-          load.load_number !== "—" ? load.load_number : load.sr,
-        sr: load.sr,
-        description: buildLineItemDescription(load),
-        emailSummary: buildLineItemEmailSummary(load, amount),
-        quantity: 1,
-        rate: amount,
-        amount,
-      };
-    });
+    const lineItems: InvoiceLineItem[] = carrierLoads
+      .map((load) => {
+        const amount = computeOutstandingDispatchFee(load);
+        return {
+          loadNumber:
+            load.load_number !== "—" ? load.load_number : load.sr,
+          sr: load.sr,
+          description: buildLineItemDescription(load),
+          emailSummary: buildLineItemEmailSummary(load, amount),
+          quantity: 1,
+          rate: amount,
+          amount,
+        };
+      })
+      .filter((li) => li.amount > 0);
 
     const total = lineItems.reduce((s, li) => s + li.amount, 0);
-    if (lineItems.length === 0) continue;
+    if (lineItems.length === 0 || total <= 0) continue;
 
     invoices.push({
       invoiceNumber,

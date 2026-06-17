@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { FileDown, Loader2, Mail, Send } from "lucide-react";
 import { DispatchMonthSelector } from "@/components/freight/DispatchMonthSelector";
+import { PortalClock, useLiveNow } from "@/components/freight/PortalClock";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
 import {
   buildCarrierInvoices,
@@ -40,7 +41,8 @@ export function DispatcherInvoicesPage() {
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<InvoicePaymentMethod>("s_zelle");
 
-  const friday = useMemo(() => getInvoiceFriday(), []);
+  const now = useLiveNow(60_000);
+  const friday = useMemo(() => getInvoiceFriday(now), [now.toDateString()]);
   const fridayLabel = formatInvoiceDate(friday);
 
   const carrierGroups = useMemo(() => {
@@ -194,16 +196,22 @@ export function DispatcherInvoicesPage() {
             Weekly carrier invoices — issued Fridays · due {fridayLabel}
           </p>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
+            Only unpaid or partially paid loads are included — paid STATUS rows are skipped.
+          </p>
+          <p className="mt-1 text-xs text-[var(--color-muted)]">
             One PDF per carrier — e.g. <em>Invoice 1 Abo Trucking LLC.pdf</em> where{" "}
             <strong className="text-[var(--color-text)]">1</strong> is the invoice number.
           </p>
         </div>
-        <DispatchMonthSelector
-          value={activeTab}
-          options={data.sheet_meta.available_tabs}
-          onChange={changeTab}
-          disabled={loading}
-        />
+        <div className="flex flex-wrap items-start gap-4">
+          <DispatchMonthSelector
+            value={activeTab}
+            options={data.sheet_meta.available_tabs}
+            onChange={changeTab}
+            disabled={loading}
+          />
+          <PortalClock compact />
+        </div>
       </div>
 
       <div className="rounded-2xl border border-[var(--color-accent)]/30 bg-[var(--color-surface)]/50 p-5">
@@ -321,8 +329,8 @@ export function DispatcherInvoicesPage() {
             {carrierGroups.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-10 text-center text-[var(--color-muted)]">
-                  No invoiceable loads yet. Fill in Company Name, Load #, RC-Invoice, and % on the
-                  dispatch sheet.
+                  No unpaid loads to invoice. Paid rows (STATUS = Paid) are excluded; partial
+                  payments use the remaining balance only.
                 </td>
               </tr>
             ) : (

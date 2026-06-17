@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useDashboardMobileNavClose } from "@/components/layout/ResponsiveDashboardShell";
+import { PortalClock } from "@/components/freight/PortalClock";
 
 const NAV = [
   { href: "/freight/carrier/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -58,6 +59,9 @@ export function CarrierSidebar({ email, companyName }: { email: string; companyN
               {companyName ?? "Carrier Portal"}
             </p>
           </div>
+        </div>
+        <div className="mt-4">
+          <PortalClock compact />
         </div>
       </div>
 
