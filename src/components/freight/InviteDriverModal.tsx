@@ -98,7 +98,7 @@ export function InviteDriverModal({
             <h3 className="text-lg font-bold text-[var(--color-text)]">Driver invitation</h3>
             {mode === "carrier" ? (
               <p className="mt-2 text-xs text-[var(--color-muted)]">
-                Adding a driver costs <strong className="text-orange-300">$5</strong> (Stripe checkout). Dispatchers add drivers free.
+                Adding a driver costs <strong className="text-orange-300">$5</strong> via Stripe checkout.
               </p>
             ) : null}
             {mode === "dispatcher" ? (

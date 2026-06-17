@@ -410,6 +410,93 @@ export async function sendDispatcherMessageToCarrierEmail(params: {
   });
 }
 
+export async function sendPortalConfigUpdatedEmail(params: {
+  to: string;
+  carrierName: string;
+  dispatcherName: string;
+}) {
+  const html = brandedEmailWrap(
+    "Portal updated",
+    `<p>Hi ${escapeHtml(params.carrierName)},</p>
+     <p>Your carrier portal display was updated by dispatch (${escapeHtml(params.dispatcherName)}).</p>
+     ${cta("View carrier portal", `${PUBLIC_SITE_URL}/freight/carrier/dashboard`)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: "Your carrier portal was updated",
+    html,
+    text: `Portal updated for ${params.carrierName}. View: ${PUBLIC_SITE_URL}/freight/carrier/dashboard`,
+  });
+}
+
+export async function sendLoadAssignedToDriverEmail(params: {
+  to: string;
+  driverName: string;
+  loadNumber: string;
+  pickup: string;
+  delivery: string;
+}) {
+  const html = brandedEmailWrap(
+    "Load assigned",
+    `<p>Hi ${escapeHtml(params.driverName)},</p>
+     <p>You have been assigned load <strong>#${escapeHtml(params.loadNumber)}</strong>.</p>
+     <ul>
+       <li><strong>Pickup:</strong> ${escapeHtml(params.pickup || "—")}</li>
+       <li><strong>Delivery:</strong> ${escapeHtml(params.delivery || "—")}</li>
+     </ul>
+     ${cta("Open driver portal", `${PUBLIC_SITE_URL}/freight/driver/dashboard`)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `Load assigned — ${params.loadNumber}`,
+    html,
+    text: `Load ${params.loadNumber} assigned. Pickup: ${params.pickup}. Driver portal: ${PUBLIC_SITE_URL}/freight/driver/dashboard`,
+  });
+}
+
+export async function sendLoadDriverAssignedCarrierEmail(params: {
+  to: string;
+  carrierName: string;
+  loadNumber: string;
+  driverName: string;
+}) {
+  const html = brandedEmailWrap(
+    "Driver assigned to load",
+    `<p>Hi ${escapeHtml(params.carrierName)},</p>
+     <p>Driver <strong>${escapeHtml(params.driverName)}</strong> was assigned to load <strong>#${escapeHtml(params.loadNumber)}</strong>.</p>
+     ${cta("View loads", `${PUBLIC_SITE_URL}/freight/carrier/loads`)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `Driver assigned — load ${params.loadNumber}`,
+    html,
+    text: `Driver ${params.driverName} assigned to load ${params.loadNumber}.`,
+  });
+}
+
+export async function sendLoadDocumentUploadedEmail(params: {
+  to: string;
+  recipientName: string;
+  loadNumber: string;
+  documentLabel: string;
+  uploadedBy: string;
+  portalLabel: string;
+  portalUrl: string;
+}) {
+  const html = brandedEmailWrap(
+    "Document uploaded",
+    `<p>Hi ${escapeHtml(params.recipientName)},</p>
+     <p><strong>${escapeHtml(params.uploadedBy)}</strong> uploaded <strong>${escapeHtml(params.documentLabel)}</strong> for load <strong>#${escapeHtml(params.loadNumber)}</strong>.</p>
+     ${cta(params.portalLabel, params.portalUrl)}`,
+  );
+  await sendTransactional({
+    to: params.to,
+    subject: `${params.documentLabel} uploaded — load ${params.loadNumber}`,
+    html,
+    text: `${params.documentLabel} uploaded for load ${params.loadNumber} by ${params.uploadedBy}. ${params.portalUrl}`,
+  });
+}
+
 function escapeHtml(s: string) {
   return s
     .replaceAll("&", "&amp;")

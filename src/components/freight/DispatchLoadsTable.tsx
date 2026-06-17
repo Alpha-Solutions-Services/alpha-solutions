@@ -19,10 +19,12 @@ export function DispatchLoadsTable({
   loads,
   compact = false,
   onRemove,
+  onAssign,
 }: {
   loads: DashboardLoad[];
   compact?: boolean;
   onRemove?: (dbId: string) => void | Promise<void>;
+  onAssign?: (load: DashboardLoad) => void;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -78,6 +80,8 @@ export function DispatchLoadsTable({
       <ArrowDown className="inline h-3 w-3" />
     );
   }
+
+  const showActions = Boolean(onRemove || onAssign);
 
   return (
     <div className="space-y-4">
@@ -159,7 +163,7 @@ export function DispatchLoadsTable({
                 </button>
               </th>
               <th className="whitespace-nowrap px-3 py-3 font-medium">CPAY</th>
-              {onRemove ? (
+              {showActions ? (
                 <th className="whitespace-nowrap px-3 py-3 font-medium">Actions</th>
               ) : null}
             </tr>
@@ -218,17 +222,28 @@ export function DispatchLoadsTable({
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-[var(--color-muted)]">{load.cpay}</td>
-                  {onRemove ? (
+                  {showActions ? (
                     <td className="whitespace-nowrap px-3 py-2.5">
-                      {load.db_id ? (
-                        <button
-                          type="button"
-                          onClick={() => void onRemove(load.db_id!)}
-                          className="rounded-lg border border-red-500/40 px-2 py-1 text-[10px] text-red-300 hover:bg-red-500/10"
-                        >
-                          Remove
-                        </button>
-                      ) : null}
+                      <div className="flex flex-wrap gap-1">
+                        {onAssign && load.db_id ? (
+                          <button
+                            type="button"
+                            onClick={() => onAssign(load)}
+                            className="rounded-lg border border-[var(--color-accent)]/40 px-2 py-1 text-[10px] text-[var(--color-accent)] hover:bg-[var(--color-accent-dim)]/30"
+                          >
+                            Assign
+                          </button>
+                        ) : null}
+                        {onRemove && load.db_id ? (
+                          <button
+                            type="button"
+                            onClick={() => void onRemove(load.db_id!)}
+                            className="rounded-lg border border-red-500/40 px-2 py-1 text-[10px] text-red-300 hover:bg-red-500/10"
+                          >
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   ) : null}
                 </tr>

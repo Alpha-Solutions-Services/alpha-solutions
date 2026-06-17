@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbLoadToDashboardLoad, fetchDriverLoadsFromDb } from "@/lib/freight/dispatch-loads-db";
+import { getLoadDocumentSignedUrl } from "@/lib/freight/load-documents";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -24,20 +25,40 @@ export async function GET() {
   }
 
   const rows = await fetchDriverLoadsFromDb(user.id);
-  const loads = rows.map((row, i) => {
-    const l = dbLoadToDashboardLoad(row, i);
-    return {
-      id: row.id,
-      load_number: l.load_number !== "—" ? l.load_number : l.sr,
-      pickup: l.pickup,
-      delivery: l.delivery,
-      rate: l.rate,
-      status: l.status,
-      miles: l.miles,
-      broker: l.broker,
-      carrier: l.carrier,
-    };
-  });
+  const loads = await Promise.all(
+    rows.map(async (row, i) => {
+      const l = dbLoadToDashboardLoad(row, i);
+      const [rateConUrl, bolUrl, commodityUrl, podUrl] = await Promise.all([
+        getLoadDocumentSignedUrl(row.rate_con_path),
+        getLoadDocumentSignedUrl(row.bol_path),
+        getLoadDocumentSignedUrl(row.commodity_path),
+        getLoadDocumentSignedUrl(row.pod_path),
+      ]);
+      return {
+        id: row.id,
+        load_number: l.load_number !== "—" ? l.load_number : l.sr,
+        pickup: l.pickup,
+        delivery: l.delivery,
+        rate: l.rate,
+        status: l.status,
+        miles: l.miles,
+        broker: l.broker,
+        carrier: l.carrier,
+        documents: {
+          rate_con: Boolean(row.rate_con_path),
+          bol: Boolean(row.bol_path),
+          commodity: Boolean(row.commodity_path),
+          pod: Boolean(row.pod_path),
+        },
+        document_urls: {
+          rate_con: rateConUrl,
+          bol: bolUrl,
+          commodity: commodityUrl,
+          pod: podUrl,
+        },
+      };
+    }),
+  );
 
   return NextResponse.json({
     driver: {

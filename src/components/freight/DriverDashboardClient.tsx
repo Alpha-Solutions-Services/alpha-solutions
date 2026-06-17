@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Download, Loader2, RefreshCw, Upload } from "lucide-react";
 import { PortalClock } from "@/components/freight/PortalClock";
 
 type DriverLoad = {
@@ -14,6 +14,18 @@ type DriverLoad = {
   miles: number;
   broker: string;
   carrier: string;
+  documents: {
+    rate_con: boolean;
+    bol: boolean;
+    commodity: boolean;
+    pod: boolean;
+  };
+  document_urls: {
+    rate_con: string | null;
+    bol: string | null;
+    commodity: string | null;
+    pod: string | null;
+  };
 };
 
 type DriverDashboardPayload = {
@@ -21,6 +33,12 @@ type DriverDashboardPayload = {
   loads: DriverLoad[];
   generated_at: string;
 };
+
+const UPLOAD_TYPES = [
+  { key: "bol" as const, label: "BOL" },
+  { key: "commodity" as const, label: "Commodity photo" },
+  { key: "pod" as const, label: "POD" },
+];
 
 function formatUsd(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
@@ -30,6 +48,7 @@ export function DriverDashboardClient() {
   const [data, setData] = useState<DriverDashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -49,6 +68,24 @@ export function DriverDashboardClient() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  async function uploadDoc(loadId: string, type: "bol" | "commodity" | "pod", file: File) {
+    setUploading(`${loadId}-${type}`);
+    try {
+      const form = new FormData();
+      form.set("loadId", loadId);
+      form.set("type", type);
+      form.set("file", file);
+      const res = await fetch("/api/freight/loads/documents", { method: "POST", body: form });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Upload failed");
+      await refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(null);
+    }
+  }
 
   if (loading && !data) {
     return (
@@ -93,40 +130,88 @@ export function DriverDashboardClient() {
         </div>
       </header>
 
-      <div className="overflow-x-auto rounded-2xl border border-[var(--color-border)]">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-[var(--color-surface)]/80 text-xs uppercase text-[var(--color-muted)]">
-            <tr>
-              <th className="px-4 py-3">Load #</th>
-              <th className="px-4 py-3">Pickup</th>
-              <th className="px-4 py-3">Delivery</th>
-              <th className="px-4 py-3">Broker</th>
-              <th className="px-4 py-3">Rate</th>
-              <th className="px-4 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-border)]">
-            {data.loads.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-[var(--color-muted)]">
-                  No loads assigned yet. Dispatch will assign trips from the portal.
-                </td>
-              </tr>
-            ) : (
-              data.loads.map((load) => (
-                <tr key={load.id} className="hover:bg-[var(--color-accent-dim)]/20">
-                  <td className="px-4 py-3 font-medium">{load.load_number}</td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">{load.pickup}</td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">{load.delivery}</td>
-                  <td className="px-4 py-3">{load.broker}</td>
-                  <td className="px-4 py-3 tabular-nums">{formatUsd(load.rate)}</td>
-                  <td className="px-4 py-3">{load.status}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {data.loads.length === 0 ? (
+        <div className="rounded-2xl border border-[var(--color-border)] px-4 py-10 text-center text-[var(--color-muted)]">
+          No loads assigned yet. Dispatch will assign trips from the portal.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {data.loads.map((load) => (
+            <div
+              key={load.id}
+              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-lg font-semibold text-[var(--color-text)]">Load {load.load_number}</p>
+                  <p className="mt-1 text-sm text-[var(--color-muted)]">
+                    {load.pickup} → {load.delivery}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--color-muted)]">
+                    {load.broker} · {formatUsd(load.rate)} · {load.status}
+                  </p>
+                </div>
+                {load.documents.rate_con && load.document_urls.rate_con ? (
+                  <a
+                    href={load.document_urls.rate_con}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-accent)]/40 px-3 py-2 text-xs text-[var(--color-accent)]"
+                  >
+                    <Download className="h-4 w-4" />
+                    Rate confirmation
+                  </a>
+                ) : (
+                  <span className="text-xs text-[var(--color-muted)]">Rate con pending from dispatch</span>
+                )}
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {UPLOAD_TYPES.map(({ key, label }) => (
+                  <div
+                    key={key}
+                    className="rounded-xl border border-[var(--color-border)] p-3"
+                  >
+                    <p className="text-xs font-medium text-[var(--color-text)]">{label}</p>
+                    {load.documents[key] && load.document_urls[key] ? (
+                      <a
+                        href={load.document_urls[key]!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--color-accent)]"
+                      >
+                        <Download className="h-3 w-3" />
+                        View uploaded
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-[10px] text-[var(--color-muted)]">Not uploaded</p>
+                    )}
+                    <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[var(--color-muted)] hover:text-[var(--color-accent)]">
+                      {uploading === `${load.id}-${key}` ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-3 w-3" />
+                      )}
+                      Upload
+                      <input
+                        type="file"
+                        accept=".pdf,image/*"
+                        className="hidden"
+                        disabled={Boolean(uploading)}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void uploadDoc(load.id, key, file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -34,6 +34,10 @@ export type DbDispatchLoad = {
   phone: string | null;
   carrier_profile_id: string | null;
   assigned_driver_profile_id: string | null;
+  rate_con_path: string | null;
+  bol_path: string | null;
+  commodity_path: string | null;
+  pod_path: string | null;
   deleted_at: string | null;
 };
 

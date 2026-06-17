@@ -1,10 +1,15 @@
 import { normalizeCompanyKey } from "./carrier-contact";
-import type { CarrierDashboardData, CarrierLoadRow } from "./carrier-dashboard-types";
+import type {
+  CarrierDashboardData,
+  CarrierLoadRow,
+  CarrierSummary,
+  RevenuePoint,
+} from "./carrier-dashboard-types";
 import {
   fetchCarrierPortalConfig,
   mergePortalConfig,
 } from "./carrier-portal-db";
-import { getCarrierMockDashboard } from "./carrier-mock-data";
+import { createEmptyCarrierDashboard } from "./empty-carrier-dashboard";
 import {
   dbLoadToDashboardLoad,
   fetchCarrierLoadsFromDb,
@@ -35,22 +40,64 @@ function mapSheetRowToLoad(row: {
   };
 }
 
+function computeSummaryFromLoads(loads: CarrierLoadRow[], miles: number): CarrierSummary {
+  const revenue = loads.reduce((s, l) => s + l.rate, 0);
+  const active = loads.filter(
+    (l) => !["delivered", "paid", "completed"].includes(l.status.toLowerCase()),
+  ).length;
+  const outstanding = loads
+    .filter((l) => l.status.toLowerCase() === "unpaid")
+    .reduce((s, l) => s + l.rate, 0);
+
+  return {
+    weekly_revenue: revenue,
+    monthly_revenue: revenue,
+    active_loads: active,
+    rpm: miles > 0 ? Math.round((revenue / miles) * 100) / 100 : 0,
+    miles_driven: miles,
+    outstanding_invoices: outstanding,
+  };
+}
+
+function buildRevenueFromLoads(loads: CarrierLoadRow[]): {
+  revenue_weekly: RevenuePoint[];
+  revenue_monthly: RevenuePoint[];
+  rpm_trend: RevenuePoint[];
+} {
+  if (!loads.length) {
+    return { revenue_weekly: [], revenue_monthly: [], rpm_trend: [] };
+  }
+
+  const total = loads.reduce((s, l) => s + l.rate, 0);
+  const miles = loads.reduce((s, l) => s + (l.miles ?? 0), 0);
+  const rpm = miles > 0 ? Math.round((total / miles) * 100) / 100 : 0;
+
+  return {
+    revenue_weekly: [{ label: "This week", amount: total }],
+    revenue_monthly: [{ label: "This month", amount: total }],
+    rpm_trend: [{ label: "Current", amount: rpm }],
+  };
+}
+
 function applyLoadsToDashboard(
   dashboard: CarrierDashboardData,
   loads: CarrierLoadRow[],
   miles: number,
 ): CarrierDashboardData {
-  const revenue = loads.reduce((s, l) => s + l.rate, 0);
+  const summary = computeSummaryFromLoads(loads, miles);
+  const charts = buildRevenueFromLoads(loads);
   const inTransit = loads.find((l) => l.status.toLowerCase().includes("transit"));
 
   dashboard.loads = loads;
-  dashboard.summary.active_loads = loads.filter(
-    (l) => !["delivered", "paid", "completed"].includes(l.status.toLowerCase()),
-  ).length;
-  dashboard.summary.weekly_revenue = revenue || dashboard.summary.weekly_revenue;
-  dashboard.summary.miles_driven = miles || dashboard.summary.miles_driven;
-  dashboard.summary.rpm =
-    miles > 0 ? Math.round((revenue / miles) * 100) / 100 : dashboard.summary.rpm;
+  dashboard.summary = summary;
+  dashboard.revenue_weekly = charts.revenue_weekly;
+  dashboard.revenue_monthly = charts.revenue_monthly;
+  dashboard.rpm_trend = charts.rpm_trend;
+  dashboard.payments.unpaid_invoices = summary.outstanding_invoices;
+  dashboard.payments.paid_this_month = loads
+    .filter((l) => l.status.toLowerCase() === "paid")
+    .reduce((s, l) => s + l.rate, 0);
+  dashboard.payments.total_earnings_ytd = loads.reduce((s, l) => s + l.rate, 0);
 
   if (inTransit) {
     dashboard.current_load = {
@@ -62,6 +109,8 @@ function applyLoadsToDashboard(
       eta: "—",
       truck_location: dashboard.trucks[0]?.location,
     };
+  } else {
+    dashboard.current_load = null;
   }
 
   return dashboard;
@@ -73,12 +122,12 @@ export async function buildCarrierDashboard(opts: {
   ownerName?: string;
   carrierProfileId?: string;
 }): Promise<CarrierDashboardData> {
-  let dashboard = getCarrierMockDashboard(opts.companyName || "ABC Trucking LLC");
-
-  if (opts.mcNumber) dashboard.carrier.mc_number = opts.mcNumber;
-  if (opts.ownerName) dashboard.carrier.owner = opts.ownerName;
-  dashboard.carrier.company_name = opts.companyName || dashboard.carrier.company_name;
-  if (opts.carrierProfileId) dashboard.carrier.carrier_id = opts.carrierProfileId;
+  let dashboard = createEmptyCarrierDashboard({
+    companyName: opts.companyName || "—",
+    mcNumber: opts.mcNumber,
+    ownerName: opts.ownerName,
+    carrierProfileId: opts.carrierProfileId,
+  });
 
   const key = normalizeCompanyKey(opts.companyName || "");
 
@@ -131,7 +180,6 @@ export async function buildCarrierDashboard(opts: {
       name: d.driverName,
       phone: d.driverPhone,
       status: "Active",
-      score: 90,
     }));
   if (companyDrivers.length) {
     dashboard.drivers = companyDrivers;

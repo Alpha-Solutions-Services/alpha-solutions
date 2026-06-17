@@ -5,8 +5,10 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { DispatchLoadsTable } from "@/components/freight/DispatchLoadsTable";
 import { DispatchMonthSelector } from "@/components/freight/DispatchMonthSelector";
+import { LoadAssignModal } from "@/components/freight/LoadAssignModal";
 import { PortalClock } from "@/components/freight/PortalClock";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
+import type { DashboardLoad } from "@/lib/freight/dispatch-dashboard-types";
 
 export function DispatcherLoadsPage() {
   const { data, loading, error, refresh, activeTab, changeTab } = useDispatchDashboard();
@@ -15,6 +17,7 @@ export function DispatcherLoadsPage() {
   const [bookOpen, setBookOpen] = useState(showBook);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [assignLoad, setAssignLoad] = useState<DashboardLoad | null>(null);
   const [form, setForm] = useState({
     company: "",
     broker: "",
@@ -168,7 +171,19 @@ export function DispatcherLoadsPage() {
       <DispatchLoadsTable
         loads={data.loads}
         onRemove={data.sheet_meta.source === "supabase" ? removeLoad : undefined}
+        onAssign={data.sheet_meta.source === "supabase" ? setAssignLoad : undefined}
       />
+
+      {assignLoad ? (
+        <LoadAssignModal
+          load={assignLoad}
+          onClose={() => setAssignLoad(null)}
+          onSaved={async () => {
+            await refresh();
+            setAssignLoad(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

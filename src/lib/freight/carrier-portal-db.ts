@@ -1,24 +1,17 @@
-import type { CarrierDashboardData } from "./carrier-dashboard-types";
+import type { CarrierCompliance, CarrierDashboardData, CarrierSummary } from "./carrier-dashboard-types";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 
-export type CarrierPortalConfig = Partial<
-  Pick<
-    CarrierDashboardData,
-    | "trucks"
-    | "drivers"
-    | "payments"
-    | "documents"
-    | "compliance"
-    | "dispatcher"
-    | "revenue_weekly"
-    | "revenue_monthly"
-    | "rpm_trend"
-    | "current_load"
-    | "summary"
-    | "fuel_expense_month"
-    | "maintenance_alerts"
-  >
->;
+/** Fields dispatchers edit in the portal UI — never fake loads/drivers. */
+export type CarrierPortalConfig = {
+  trucks?: CarrierDashboardData["trucks"];
+  compliance?: Partial<CarrierCompliance>;
+  dispatcher?: CarrierDashboardData["dispatcher"];
+  /** Optional KPI overrides on top of auto-calculated values from real loads. */
+  summary_overrides?: Partial<CarrierSummary>;
+  payments?: Partial<CarrierDashboardData["payments"]>;
+  fuel_expense_month?: number;
+  maintenance_alerts?: number;
+};
 
 export async function fetchCarrierPortalConfig(opts: {
   companyName: string;
@@ -82,19 +75,16 @@ export function mergePortalConfig(
   config: CarrierPortalConfig | null,
 ): CarrierDashboardData {
   if (!config) return base;
+
   return {
     ...base,
-    summary: { ...base.summary, ...config.summary },
-    current_load: config.current_load ?? base.current_load,
-    trucks: config.trucks?.length ? config.trucks : base.trucks,
-    drivers: config.drivers?.length ? config.drivers : base.drivers,
-    payments: { ...base.payments, ...config.payments },
-    documents: config.documents?.length ? config.documents : base.documents,
+    summary: config.summary_overrides
+      ? { ...base.summary, ...config.summary_overrides }
+      : base.summary,
+    trucks: config.trucks ?? base.trucks,
     compliance: { ...base.compliance, ...config.compliance },
     dispatcher: { ...base.dispatcher, ...config.dispatcher },
-    revenue_weekly: config.revenue_weekly?.length ? config.revenue_weekly : base.revenue_weekly,
-    revenue_monthly: config.revenue_monthly?.length ? config.revenue_monthly : base.revenue_monthly,
-    rpm_trend: config.rpm_trend?.length ? config.rpm_trend : base.rpm_trend,
+    payments: config.payments ? { ...base.payments, ...config.payments } : base.payments,
     fuel_expense_month: config.fuel_expense_month ?? base.fuel_expense_month,
     maintenance_alerts: config.maintenance_alerts ?? base.maintenance_alerts,
     data_source: "live",

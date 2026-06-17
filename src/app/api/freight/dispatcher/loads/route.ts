@@ -10,8 +10,11 @@ import {
 import {
   sendLoadActionDispatcherEmail,
   sendLoadAddedEmail,
+  sendLoadAssignedToDriverEmail,
+  sendLoadDriverAssignedCarrierEmail,
   sendLoadRemovedEmail,
 } from "@/lib/freight/emails";
+import { resolveProfileEmail, resolveProfileName } from "@/lib/freight/load-documents";
 import { resolveActiveMonthTab } from "@/lib/freight/dispatch-sheet-tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -158,8 +161,81 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = patchSchema.parse(await req.json());
+    const admin = getServiceRoleClient();
+
+    let previousDriverId: string | null = null;
+    type LoadAssignMeta = {
+      load_number: string | null;
+      sr: number;
+      company_name: string;
+      pickup_date_time: string | null;
+      delivery_date_time: string | null;
+      carrier_profile_id: string | null;
+      email: string | null;
+    };
+    let loadMeta: LoadAssignMeta | null = null;
+
+    if (admin && body.assignedDriverProfileId !== undefined) {
+      const { data: row } = await admin
+        .from("dispatch_loads")
+        .select(
+          "assigned_driver_profile_id, load_number, sr, company_name, pickup_date_time, delivery_date_time, carrier_profile_id, email",
+        )
+        .eq("id", body.id)
+        .maybeSingle();
+      if (row) {
+        previousDriverId = row.assigned_driver_profile_id as string | null;
+        loadMeta = {
+          load_number: row.load_number as string | null,
+          sr: row.sr as number,
+          company_name: row.company_name as string,
+          pickup_date_time: row.pickup_date_time as string | null,
+          delivery_date_time: row.delivery_date_time as string | null,
+          carrier_profile_id: row.carrier_profile_id as string | null,
+          email: row.email as string | null,
+        };
+      }
+    }
+
     const ok = await updateDispatchLoad(body.id, body);
     if (!ok) return NextResponse.json({ error: "Update failed" }, { status: 500 });
+
+    if (
+      loadMeta &&
+      body.assignedDriverProfileId &&
+      body.assignedDriverProfileId !== previousDriverId
+    ) {
+      const loadNo = loadMeta.load_number || `SR-${loadMeta.sr}`;
+      const driverEmail = await resolveProfileEmail(body.assignedDriverProfileId);
+      const driverName = await resolveProfileName(body.assignedDriverProfileId);
+
+      if (driverEmail) {
+        await sendLoadAssignedToDriverEmail({
+          to: driverEmail,
+          driverName,
+          loadNumber: loadNo,
+          pickup: loadMeta.pickup_date_time ?? "",
+          delivery: loadMeta.delivery_date_time ?? "",
+        }).catch(() => {});
+      }
+
+      const carrierEmail =
+        loadMeta.email ||
+        (await resolveCarrierEmail(
+          loadMeta.company_name,
+          loadMeta.carrier_profile_id ?? undefined,
+        ));
+
+      if (carrierEmail) {
+        await sendLoadDriverAssignedCarrierEmail({
+          to: carrierEmail,
+          carrierName: loadMeta.company_name,
+          loadNumber: loadNo,
+          driverName,
+        }).catch(() => {});
+      }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof z.ZodError) {
