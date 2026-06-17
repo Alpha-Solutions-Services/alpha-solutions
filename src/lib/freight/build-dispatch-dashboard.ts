@@ -76,7 +76,7 @@ export async function buildDispatchDashboard(
   if (dbRows.length > 0) {
     const loads = dbRows.map((row, i) => dbLoadToDashboardLoad(row, i));
     const dashboard = buildDashboardFromRows(
-      dbRows.map((r, i) => ({
+      dbRows.map((r) => ({
         sr: String(r.sr),
         bookedBy: r.booked_by ?? "",
         rcDate: r.rc_date ?? "",

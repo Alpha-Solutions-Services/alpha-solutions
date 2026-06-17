@@ -42,7 +42,8 @@ export function DispatcherInvoicesPage() {
   const [paymentMethod, setPaymentMethod] = useState<InvoicePaymentMethod>("s_zelle");
 
   const now = useLiveNow(60_000);
-  const friday = useMemo(() => getInvoiceFriday(now), [now.toDateString()]);
+  const todayKey = now.toDateString();
+  const friday = useMemo(() => getInvoiceFriday(now), [todayKey, now]);
   const fridayLabel = formatInvoiceDate(friday);
 
   const carrierGroups = useMemo(() => {

@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { DispatchLoadsTable } from "@/components/freight/DispatchLoadsTable";
 import { DispatchMonthSelector } from "@/components/freight/DispatchMonthSelector";
 import { PortalClock } from "@/components/freight/PortalClock";

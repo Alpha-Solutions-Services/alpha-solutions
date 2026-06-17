@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
 import type { CarrierDashboardData } from "@/lib/freight/carrier-dashboard-types";
@@ -12,7 +12,7 @@ export function DispatcherCarrierPortalPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const carriers = data?.carriers ?? [];
+  const carriers = useMemo(() => data?.carriers ?? [], [data?.carriers]);
 
   useEffect(() => {
     if (!carrier && carriers[0]) {
