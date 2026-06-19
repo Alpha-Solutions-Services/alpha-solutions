@@ -3,11 +3,11 @@ import JSZip from "jszip";
 import { z } from "zod";
 import { buildDispatchDashboard } from "@/lib/freight/build-dispatch-dashboard";
 import {
-  buildCarrierInvoices,
   getDefaultIssuer,
   getInvoiceFriday,
   invoicePdfFilename,
 } from "@/lib/freight/dispatch-invoice";
+import { buildDispatchInvoicesForBatch } from "@/lib/freight/dispatch-invoice-service";
 import { buildInvoicePdfWithPayment } from "@/lib/freight/dispatch-invoice-build";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,6 +20,7 @@ const bodySchema = z.object({
   loadSrs: z.array(z.string()).optional(),
   invoiceDate: z.string().optional(),
   paymentMethod: z.enum(["s_zelle", "m_zelle", "stripe"]).optional(),
+  invoiceNumbers: z.record(z.string(), z.string()).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -59,9 +60,11 @@ export async function POST(req: NextRequest) {
       ? new Date(body.invoiceDate)
       : getInvoiceFriday();
 
-    const invoices = buildCarrierInvoices(loads, {
+    const invoices = await buildDispatchInvoicesForBatch({
+      loads,
       carriers: body.carriers,
       invoiceDate,
+      invoiceNumbersByCarrier: body.invoiceNumbers,
       carrierRoster: dashboard.carrier_roster,
     });
 

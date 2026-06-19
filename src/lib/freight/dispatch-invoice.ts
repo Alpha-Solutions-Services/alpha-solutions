@@ -32,7 +32,7 @@ export type InvoiceLineItem = {
 };
 
 export type CarrierDispatchInvoice = {
-  invoiceNumber: number;
+  invoiceNumber: string;
   carrierName: string;
   invoiceDate: Date;
   dueDate: Date;
@@ -243,15 +243,17 @@ export function buildCarrierInvoices(
     carriers?: string[];
     invoiceDate?: Date;
     startNumber?: number;
+    invoiceNumbersByCarrier?: Record<string, string>;
     carrierRoster?: CarrierRosterEntry[];
   },
 ): CarrierDispatchInvoice[] {
   const grouped = groupLoadsByCarrier(loads);
   const invoiceDate = opts?.invoiceDate ?? getInvoiceFriday();
   const dueDate = invoiceDate;
-  let invoiceNumber = opts?.startNumber ?? 1;
+  let nextAutoNumber = opts?.startNumber ?? 1;
 
   const rosterIndex = buildCarrierContactIndex(opts?.carrierRoster ?? []);
+  const customNumbers = opts?.invoiceNumbersByCarrier ?? {};
 
   const carrierFilter = opts?.carriers?.map((c) => c.trim().toLowerCase());
   const invoices: CarrierDispatchInvoice[] = [];
@@ -262,6 +264,10 @@ export function buildCarrierInvoices(
     if (carrierFilter?.length && !carrierFilter.includes(carrierName.toLowerCase())) {
       continue;
     }
+
+    const custom = customNumbers[carrierName]?.trim();
+    const invoiceNumber = custom || String(nextAutoNumber);
+    if (!custom) nextAutoNumber += 1;
 
     const carrierLoads = grouped.get(carrierName)!;
     const first = carrierLoads[0];
@@ -288,7 +294,7 @@ export function buildCarrierInvoices(
     if (lineItems.length === 0 || total <= 0) continue;
 
     invoices.push({
-      invoiceNumber,
+      invoiceNumber: invoiceNumber.trim(),
       carrierName,
       invoiceDate,
       dueDate,
@@ -309,8 +315,6 @@ export function buildCarrierInvoices(
       lineItems,
       total,
     });
-
-    invoiceNumber += 1;
   }
 
   return invoices;
