@@ -802,7 +802,7 @@ export default function HomePageClient({
 
           <FadeSection className="mt-8">
             <p className="text-center text-sm text-[var(--color-muted)]">
-              Payments accepted via Stripe, Payoneer, Wise & more - in USD, PKR,
+              Payments accepted via Payoneer, Wise, Zelle & more - in USD, PKR,
               EUR, and GBP.
             </p>
           </FadeSection>

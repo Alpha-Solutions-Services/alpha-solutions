@@ -276,7 +276,7 @@ export function DispatcherCarrierManage() {
                 onChange={(e) => setForm((f) => ({ ...f, billingMode: e.target.value }))}
                 className="dispatch-field mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-2"
               >
-                <option value="standard">Charge $10/mo (trial then Stripe)</option>
+                <option value="standard">Standard billing ($10/mo after trial)</option>
                 <option value="free">Free access (comped)</option>
               </select>
             </label>

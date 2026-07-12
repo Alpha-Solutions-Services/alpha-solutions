@@ -191,23 +191,6 @@ export function CarrierDriversPage() {
 
 export function CarrierPaymentsPage() {
   const { data, loading, company } = useCarrierPage();
-  const [subBusy, setSubBusy] = useState(false);
-  const [subMsg, setSubMsg] = useState<string | null>(null);
-
-  async function startSubscription() {
-    setSubBusy(true);
-    setSubMsg(null);
-    try {
-      const res = await fetch("/api/freight/carrier/create-subscription", { method: "POST" });
-      const json = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok) throw new Error(json.error ?? "Could not start checkout");
-      if (json.url) window.location.href = json.url;
-    } catch (e) {
-      setSubMsg(e instanceof Error ? e.message : "Checkout failed");
-    } finally {
-      setSubBusy(false);
-    }
-  }
 
   return (
     <CarrierPageShell title="Payments" loading={loading && !data} companyName={company}>
@@ -215,16 +198,15 @@ export function CarrierPaymentsPage() {
         <p className="text-sm font-semibold text-[var(--color-text)]">Carrier portal subscription</p>
         <p className="mt-1 text-sm text-[var(--color-muted)]">
           $10/month after a <strong className="text-[var(--color-text)]">7-day free trial</strong>, unless dispatch grants you free access.
+          Contact dispatch to arrange payment via Zelle or bank transfer after your trial ends.
         </p>
-        <button
-          type="button"
-          disabled={subBusy}
-          onClick={() => void startSubscription()}
-          className="mt-4 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
-        >
-          {subBusy ? "Redirecting…" : "Subscribe with Stripe"}
-        </button>
-        {subMsg ? <p className="mt-2 text-sm text-red-300">{subMsg}</p> : null}
+        <p className="mt-3 text-xs text-[var(--color-muted)]">
+          Email{" "}
+          <a href="mailto:freight@alphasolutions.software" className="text-[var(--color-accent)] hover:underline">
+            freight@alphasolutions.software
+          </a>{" "}
+          to continue portal access after trial.
+        </p>
       </CarrierGlassCard>
       {data ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

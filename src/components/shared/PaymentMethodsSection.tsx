@@ -1,5 +1,4 @@
 const PAYMENT_METHODS = [
-  "Stripe",
   "Payoneer",
   "Wise",
   "Zelle",

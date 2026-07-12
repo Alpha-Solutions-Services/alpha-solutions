@@ -19,7 +19,7 @@ const bodySchema = z.object({
   carriers: z.array(z.string()).optional(),
   loadSrs: z.array(z.string()).optional(),
   invoiceDate: z.string().optional(),
-  paymentMethod: z.enum(["s_zelle", "m_zelle", "stripe"]).optional(),
+  paymentMethod: z.enum(["s_zelle", "m_zelle"]).optional(),
   invoiceNumbers: z.record(z.string(), z.string()).optional(),
 });
 
@@ -79,14 +79,12 @@ export async function POST(req: NextRequest) {
     }
 
     const issuer = getDefaultIssuer();
-    const origin = req.nextUrl.origin;
 
     if (invoices.length === 1) {
       const { pdf } = await buildInvoicePdfWithPayment(
         invoices[0],
         issuer,
         body.paymentMethod,
-        origin,
       );
       const filename = invoicePdfFilename(invoices[0]);
       return new NextResponse(new Uint8Array(pdf), {
@@ -104,7 +102,6 @@ export async function POST(req: NextRequest) {
         invoice,
         issuer,
         body.paymentMethod,
-        origin,
       );
       zip.file(invoicePdfFilename(invoice), pdf);
     }

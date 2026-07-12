@@ -20,7 +20,7 @@ const bodySchema = z.object({
   carriers: z.array(z.string()).optional(),
   loadSrs: z.array(z.string()).optional(),
   invoiceDate: z.string().optional(),
-  paymentMethod: z.enum(["s_zelle", "m_zelle", "stripe"]).optional(),
+  paymentMethod: z.enum(["s_zelle", "m_zelle"]).optional(),
   invoiceNumbers: z.record(z.string(), z.string()).optional(),
 });
 
@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
     }
 
     const issuer = getDefaultIssuer();
-    const origin = req.nextUrl.origin;
     const results: { carrier: string; ok: boolean; error?: string }[] = [];
 
     for (const invoice of invoices) {
@@ -98,7 +97,6 @@ export async function POST(req: NextRequest) {
         invoice,
         issuer,
         body.paymentMethod,
-        origin,
       );
       const filename = invoicePdfFilename(invoice);
       const sent = await sendCarrierDispatchInvoiceEmail({

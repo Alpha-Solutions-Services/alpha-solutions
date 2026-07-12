@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Alpha Freight Academy",
   description:
-    "Freight dispatch certification — syllabus, pacing, outcomes, and secure enrollment powered by Stripe.",
+    "Freight dispatch certification — syllabus, pacing, outcomes, and enrollment via Zelle, Payoneer, or Wise.",
 };
 
 const courseLd = {

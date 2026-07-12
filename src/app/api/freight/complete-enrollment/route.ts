@@ -1,27 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { z } from "zod";
 import { verifyPasswordForEmail } from "@/lib/auth/verify-password-for-email";
 import { deliverAuthNotifications } from "@/lib/email/auth-notify";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { sendStudentWelcomeEmail } from "@/lib/freight/emails";
 
-const stripeKey = process.env.STRIPE_SECRET_KEY?.trim();
-const stripe = stripeKey ? new Stripe(stripeKey) : null;
-
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().min(2),
-  customerId: z.string().min(5),
   plan: z.enum(["monthly", "lifetime"]),
-  paymentIntentId: z.string().nullable().optional(),
-  subscriptionId: z.string().nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
   const admin = getServiceRoleClient();
-  if (!admin || !stripe) {
+  if (!admin) {
     return NextResponse.json(
       { error: "Server misconfiguration" },
       { status: 500 },
@@ -30,63 +23,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = schema.parse(await req.json());
-    let paid = false;
-    let paymentIntentId: string | null = body.paymentIntentId ?? null;
-
-    if (body.plan === "lifetime") {
-      if (!paymentIntentId) {
-        return NextResponse.json(
-          { error: "paymentIntentId required" },
-          { status: 400 },
-        );
-      }
-      const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      paid =
-        intent.status === "succeeded" &&
-        intent.customer === body.customerId &&
-        intent.amount === 12000 &&
-        intent.currency === "usd";
-      if (!paid) {
-        return NextResponse.json(
-          { error: "Payment not completed" },
-          { status: 402 },
-        );
-      }
-    } else {
-      if (!body.subscriptionId) {
-        return NextResponse.json(
-          { error: "subscriptionId required" },
-          { status: 400 },
-        );
-      }
-      const sub = await stripe.subscriptions.retrieve(body.subscriptionId, {
-        expand: ["latest_invoice.payment_intent"],
-      });
-
-      paid =
-        (sub.status === "active" || sub.status === "trialing") &&
-        sub.customer === body.customerId;
-      const invoiceRaw = sub.latest_invoice;
-      if (invoiceRaw && typeof invoiceRaw === "object") {
-        const inv = invoiceRaw as {
-          payment_intent?: Stripe.PaymentIntent | string | null;
-        };
-        const ref = inv.payment_intent;
-        paymentIntentId =
-          typeof ref === "string"
-            ? ref
-            : ref && typeof ref === "object" && ref.id
-              ? ref.id
-              : paymentIntentId;
-      }
-      if (!paid) {
-        return NextResponse.json(
-          { error: "Subscription inactive" },
-          { status: 402 },
-        );
-      }
-    }
-
     const normalizedEmail = body.email.trim().toLowerCase();
     const { data: dup } = await admin.rpc("check_freight_email_registered", {
       candidate: normalizedEmail,
@@ -96,12 +32,8 @@ export async function POST(req: NextRequest) {
       email: normalizedEmail,
       full_name: body.name.trim(),
       role: "student" as const,
-      enrollment_status: "paid" as const,
+      enrollment_status: "pending" as const,
       enrollment_plan: body.plan,
-      stripe_customer_id: body.customerId,
-      stripe_subscription_id:
-        body.plan === "monthly" ? body.subscriptionId : null,
-      stripe_payment_intent_id: paymentIntentId ?? null,
       enrolled_at: new Date().toISOString(),
     };
 
@@ -204,8 +136,8 @@ export async function POST(req: NextRequest) {
       normalizedEmail,
       body.name.trim(),
       body.plan === "monthly"
-        ? "Monthly Access — Alpha Freight Academy"
-        : "Lifetime Access — Alpha Freight Academy",
+        ? "Monthly Access — Alpha Freight Academy (pending payment)"
+        : "Lifetime Access — Alpha Freight Academy (pending payment)",
     );
 
     void deliverAuthNotifications({
@@ -213,10 +145,10 @@ export async function POST(req: NextRequest) {
       userId,
       email: normalizedEmail,
       profileRole: "student",
-      detail: "Student account created after paid enrollment.",
+      detail: "Student account created — payment pending activation.",
     }).catch(() => {});
 
-    return NextResponse.json({ success: true, userId });
+    return NextResponse.json({ success: true, userId, pendingPayment: true });
   } catch (e) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });

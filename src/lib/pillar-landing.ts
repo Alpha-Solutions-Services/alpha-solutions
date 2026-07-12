@@ -99,7 +99,7 @@ export const PILLAR_LANDING_COPY: Record<
       {
         question: "Can you integrate payments and subscriptions?",
         answer:
-          "Yes—Stripe and similar providers are common. We map plans, trials, webhooks, and admin tooling so finance and support are not fighting spreadsheets.",
+          "Yes—Payoneer, Wise, Zelle, and similar providers are common. We map plans, trials, webhooks, and admin tooling so finance and support are not fighting spreadsheets.",
       },
       {
         question: "Do you build multi-tenant SaaS?",

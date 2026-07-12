@@ -5,7 +5,7 @@ import { resolveSearchParams } from "@/lib/next/resolve-search-params";
 export const metadata: Metadata = {
   title: "Enroll — Alpha Freight Academy",
   description:
-    "Choose monthly or lifetime access, create your academy login, and complete Stripe checkout.",
+    "Choose monthly or lifetime access, create your academy login, and complete payment via Zelle or contact support.",
 };
 
 export default async function StudentEnrollPage({

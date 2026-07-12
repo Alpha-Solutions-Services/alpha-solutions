@@ -27,7 +27,6 @@ import type { SentInvoiceRecord } from "@/lib/freight/dispatch-sent-invoices-db"
 const PAYMENT_PREVIEW: Record<InvoicePaymentMethod, string> = {
   s_zelle: "Suzy Agon · +1 (908) 848-9815",
   m_zelle: "Maliha Shahid · (332) 263-3544 · malihaawais1997@gmail.com",
-  stripe: "Secure card payment through Stripe button — secure card checkout link in email & PDF",
 };
 
 type PageTab = "create" | "sent";
