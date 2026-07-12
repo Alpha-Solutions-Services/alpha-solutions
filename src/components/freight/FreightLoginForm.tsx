@@ -8,6 +8,7 @@ import {
   Truck,
   IdCard,
   GraduationCap,
+  BookOpen,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { notifyAuthActivityClient } from "@/lib/auth/notify-client";
@@ -15,7 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { isSuperAdminEmail } from "@/lib/admin-allowlist";
 import { isAllowedDispatcherEmail } from "@/lib/dispatcher-allowlist";
 
-type Role = "dispatcher" | "carrier" | "driver" | "student";
+type Role = "dispatcher" | "carrier" | "driver" | "student" | "instructor";
 
 const cards: {
   id: Role;
@@ -85,6 +86,14 @@ const cards: {
       </p>
     ),
   },
+  {
+    id: "instructor",
+    title: "Instructor",
+    description: "Coordinate students and module progress",
+    sub: "Staff login for Alpha Freight Academy instructors",
+    icon: <BookOpen className="h-9 w-9 text-[var(--color-accent)]" />,
+    cta: "Login as Instructor",
+  },
 ];
 
 export function FreightLoginForm() {
@@ -110,6 +119,8 @@ export function FreightLoginForm() {
         return "/freight/driver/dashboard";
       case "student":
         return "/freight/student/dashboard";
+      case "instructor":
+        return "/freight/instructor/dashboard";
       default:
         return "/freight/login";
     }

@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 type Plan = "lifetime" | "monthly";
 
 const WHATSAPP = "https://wa.me/923494206922";
-const FREIGHT_SUPPORT = process.env.NEXT_PUBLIC_FREIGHT_SUPPORT_EMAIL ?? "freight@alphasolutions.software";
+const FREIGHT_SUPPORT = "info@alphasolutions.software";
 
 const lifetimeFeatures = [
   "All 10 lessons · All quizzes",

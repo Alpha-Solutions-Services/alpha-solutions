@@ -4,13 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
 import {
-  AlertTriangle,
-  BarChart3,
-  FileText,
+  BookOpen,
   GraduationCap,
   LayoutDashboard,
-  Package,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -18,18 +14,12 @@ import { useDashboardMobileNavClose } from "@/components/layout/ResponsiveDashbo
 import { PortalClock } from "@/components/freight/PortalClock";
 
 const NAV = [
-  { href: "/freight/dispatcher/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/freight/dispatcher/loads", label: "Loads", icon: Package },
-  { href: "/freight/dispatcher/carriers", label: "Carriers", icon: Users },
-  { href: "/freight/dispatcher/carrier-portal", label: "Carrier portal", icon: Users },
-  { href: "/freight/dispatcher/invoices", label: "Invoices", icon: FileText },
-  { href: "/freight/dispatcher/academy", label: "Academy", icon: GraduationCap },
-  { href: "/freight/dispatcher/reports", label: "Reports", icon: BarChart3 },
-  { href: "/freight/dispatcher/alerts", label: "Alerts", icon: AlertTriangle },
-  { href: "/freight/dispatcher/drivers", label: "Drivers", icon: UserPlus },
+  { href: "/freight/instructor/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/freight/instructor/students", label: "Students", icon: Users },
+  { href: "/freight/instructor/modules", label: "Modules", icon: BookOpen },
 ] as const;
 
-export function DispatcherSidebar({ email }: { email: string }) {
+export function InstructorSidebar({ email }: { email: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const closeMobile = useDashboardMobileNavClose();
@@ -45,14 +35,14 @@ export function DispatcherSidebar({ email }: { email: string }) {
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]/50 backdrop-blur-sm">
       <div className="border-b border-[var(--color-border)] px-4 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)] text-sm font-bold text-[var(--color-accent)]">
-            A
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)] text-[var(--color-accent)]">
+            <GraduationCap className="h-5 w-5" />
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-[var(--color-text)]">
-              Alpha Freight
+              Alpha Academy
             </p>
-            <p className="truncate text-xs text-[var(--color-muted)]">Dispatcher Super Admin</p>
+            <p className="truncate text-xs text-[var(--color-muted)]">Instructor</p>
           </div>
         </div>
         <div className="mt-4">
@@ -64,7 +54,7 @@ export function DispatcherSidebar({ email }: { email: string }) {
         {NAV.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href ||
-            (href !== "/freight/dispatcher/dashboard" && pathname.startsWith(href));
+            (href !== "/freight/instructor/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}

@@ -59,6 +59,20 @@ export function AdminSidebar({
           >
             Client portal
           </Link>
+          <Link
+            href="/freight/dispatcher/academy"
+            onClick={handleNavigate}
+            className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+          >
+            Academy payments
+          </Link>
+          <Link
+            href="/freight/instructor/dashboard"
+            onClick={handleNavigate}
+            className="rounded-lg px-3 py-2 text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+          >
+            Instructor portal
+          </Link>
         </nav>
         <button
           type="button"

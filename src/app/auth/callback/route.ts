@@ -64,7 +64,8 @@ export async function GET(request: NextRequest) {
     roleRaw === "dispatcher" ||
     roleRaw === "carrier" ||
     roleRaw === "driver" ||
-    roleRaw === "student"
+    roleRaw === "student" ||
+    roleRaw === "instructor"
       ? roleRaw
       : null;
   const next =
@@ -186,6 +187,7 @@ export async function GET(request: NextRequest) {
       | "carrier"
       | "student"
       | "driver"
+      | "instructor"
       | null;
 
     if (!role) return NextResponse.redirect(`${origin}/freight/login?error=profile`);
@@ -200,6 +202,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/freight/login?error=unauthorized_dispatcher`);
       }
       const dest = rawNext ? next : "/freight/dispatcher/dashboard";
+      return NextResponse.redirect(`${origin}${dest}`);
+    }
+
+    if (role === "instructor") {
+      const dest = rawNext ? next : "/freight/instructor/dashboard";
       return NextResponse.redirect(`${origin}${dest}`);
     }
 

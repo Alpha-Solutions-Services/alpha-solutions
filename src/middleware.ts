@@ -122,6 +122,15 @@ export async function middleware(request: NextRequest) {
         }
       }
 
+      if (pathname.startsWith("/freight/instructor")) {
+        if (profile.role !== "instructor" && profile.role !== "dispatcher") {
+          const n = request.nextUrl.clone();
+          n.pathname = "/freight/login";
+          n.searchParams.set("error", "unauthorized_instructor");
+          return NextResponse.redirect(n);
+        }
+      }
+
       if (pathname.startsWith("/freight/student/dashboard")) {
         if (profile.role !== "student") {
           const n = request.nextUrl.clone();

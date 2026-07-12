@@ -6,7 +6,7 @@ import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { isSuperAdminEmail } from "@/lib/admin-allowlist";
 
 const schema = z.object({
-  role: z.enum(["dispatcher", "carrier", "student"]),
+  role: z.enum(["dispatcher", "carrier", "student", "instructor"]),
 });
 
 export async function POST(req: NextRequest) {
