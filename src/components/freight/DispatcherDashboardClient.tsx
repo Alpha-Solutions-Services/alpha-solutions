@@ -15,10 +15,12 @@ import {
 import { FleetDonutChart, RevenueLineChart } from "@/components/freight/DispatchCharts";
 import { DispatchLoadsTable } from "@/components/freight/DispatchLoadsTable";
 import { DispatchMonthSelector } from "@/components/freight/DispatchMonthSelector";
+import { InvoiceAgingPanel } from "@/components/freight/InvoiceAgingPanel";
 import { PortalClock } from "@/components/freight/PortalClock";
 import { TopBookersPanel } from "@/components/freight/TopBookersPanel";
 import { useDispatchDashboard } from "@/components/freight/useDispatchDashboard";
 import type { SummaryCard } from "@/lib/freight/dispatch-dashboard-types";
+import type { InvoiceAgingReport } from "@/lib/freight/dispatch-reports";
 
 const ICONS: Record<string, typeof Truck> = {
   truck: Truck,
@@ -243,7 +245,15 @@ export function DispatcherDashboardClient() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5">
-          <h3 className="text-sm font-semibold text-[var(--color-text)]">Outstanding invoices</h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-[var(--color-text)]">Outstanding invoices</h3>
+            <Link
+              href="/freight/dispatcher/reports"
+              className="text-xs text-[var(--color-accent)] hover:underline"
+            >
+              Reports →
+            </Link>
+          </div>
           <ul className="mt-4 divide-y divide-[var(--color-border)]">
             {data.invoices
               .filter((inv) => inv.status === "Unpaid" || inv.balance > 0)
@@ -269,9 +279,37 @@ export function DispatcherDashboardClient() {
           </ul>
         </div>
 
+        {data.invoice_aging ? (
+          <InvoiceAgingPanel
+            aging={data.invoice_aging as InvoiceAgingReport}
+            compact
+          />
+        ) : (
+          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5">
+            <h3 className="text-sm font-semibold text-[var(--color-text)]">Quick actions</h3>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {data.quick_actions.map((action) => {
+                const Icon = QUICK_ICONS[action.icon] ?? FileText;
+                return (
+                  <Link
+                    key={action.name}
+                    href={action.href}
+                    className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/40 px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-accent)]/40 hover:shadow-[var(--glow-sm)]"
+                  >
+                    <Icon className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
+                    {action.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {data.invoice_aging ? (
         <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5">
           <h3 className="text-sm font-semibold text-[var(--color-text)]">Quick actions</h3>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {data.quick_actions.map((action) => {
               const Icon = QUICK_ICONS[action.icon] ?? FileText;
               return (
@@ -287,7 +325,7 @@ export function DispatcherDashboardClient() {
             })}
           </div>
         </div>
-      </div>
+      ) : null}
 
       <footer className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-4 py-4 text-sm">
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-[var(--color-muted)]">

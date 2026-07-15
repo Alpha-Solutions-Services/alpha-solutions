@@ -152,6 +152,19 @@ export type DriverRosterItem = {
   notes: string;
 };
 
+/** Open AR aging — filled from dispatched sent invoices when available. */
+export type DashboardInvoiceAging = {
+  asOf: string;
+  totalOpen: number;
+  totalOpenAmount: number;
+  buckets: {
+    id: string;
+    label: string;
+    count: number;
+    amount: number;
+  }[];
+};
+
 export type DispatchDashboardData = {
   company: { name: string; logo: string };
   summary_cards: SummaryCard[];
@@ -161,6 +174,7 @@ export type DispatchDashboardData = {
   loads: DashboardLoad[];
   carriers: DashboardCarrier[];
   invoices: DashboardInvoice[];
+  invoice_aging?: DashboardInvoiceAging;
   quick_actions: QuickAction[];
   top_bookers: TopBooker[];
   carrier_roster: CarrierRosterItem[];

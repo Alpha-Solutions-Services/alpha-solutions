@@ -45,7 +45,15 @@ export function DispatcherInvoicesPage() {
   const { data, loading, error, activeTab, changeTab, refresh } = useDispatchDashboard();
   const searchParams = useSearchParams();
   const generateMode = searchParams.get("action") === "generate";
-  const [pageTab, setPageTab] = useState<PageTab>("create");
+  const tabParam = searchParams.get("tab");
+  const [pageTab, setPageTab] = useState<PageTab>(
+    tabParam === "sent" ? "sent" : "create",
+  );
+
+  useEffect(() => {
+    if (tabParam === "sent") setPageTab("sent");
+    if (tabParam === "create") setPageTab("create");
+  }, [tabParam]);
   const [selectedCarriers, setSelectedCarriers] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
