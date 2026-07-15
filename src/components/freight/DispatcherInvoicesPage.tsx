@@ -63,10 +63,41 @@ export function DispatcherInvoicesPage() {
   const friday = useMemo(() => getInvoiceFriday(now), [now]);
   const fridayLabel = formatInvoiceDate(friday);
 
+  const billedKeys = useMemo(() => {
+    const dbIds = new Set<string>();
+    const loadNumbers = new Set<string>();
+    const carrierSrs = new Set<string>();
+    for (const inv of sentInvoices) {
+      const carrier = inv.carrierName.trim().toLowerCase();
+      for (const li of inv.lineItems) {
+        if (li.db_id) dbIds.add(li.db_id);
+        if (li.load_number) loadNumbers.add(li.load_number.trim());
+        if (li.sr && carrier) carrierSrs.add(`${carrier}::${li.sr}`);
+      }
+    }
+    return { dbIds, loadNumbers, carrierSrs };
+  }, [sentInvoices]);
+
   const carrierGroups = useMemo(() => {
     if (!data) return [];
     const rosterIndex = buildCarrierContactIndex(data.carrier_roster);
-    const grouped = groupLoadsByCarrier(data.loads);
+    const openLoads = data.loads.filter((load) => {
+      if (!isInvoiceableLoad(load)) return false;
+      if (load.db_id && billedKeys.dbIds.has(load.db_id)) return false;
+      if (
+        load.load_number &&
+        load.load_number !== "—" &&
+        billedKeys.loadNumbers.has(load.load_number.trim())
+      ) {
+        return false;
+      }
+      const carrier = load.carrier.trim().toLowerCase();
+      if (carrier && load.sr && billedKeys.carrierSrs.has(`${carrier}::${load.sr}`)) {
+        return false;
+      }
+      return true;
+    });
+    const grouped = groupLoadsByCarrier(openLoads);
 
     return Array.from(grouped.entries()).map(([carrier, loads]) => {
       const email = resolveCarrierEmail(loads, rosterIndex);
@@ -85,7 +116,7 @@ export function DispatcherInvoicesPage() {
         lineCount: loads.length,
       };
     });
-  }, [data]);
+  }, [data, billedKeys]);
 
   useEffect(() => {
     if (carrierGroups.length === 0) return;

@@ -216,9 +216,9 @@ export function resolveCarrierName(load: DashboardLoad): string {
 
 export function isInvoiceableLoad(load: DashboardLoad): boolean {
   if (!resolveCarrierName(load)) return false;
-  // Invoice workflow column may also say Paid after Sent-tab mark-paid sync.
+  // Already emailed (Sent) or closed — manage payment on the Sent tab, do not re-bill.
   const inv = normalizeStatus(load.invoice_status ?? "");
-  if (inv === "paid") return false;
+  if (inv === "paid" || inv === "sent" || inv === "partial") return false;
   return computeOutstandingDispatchFee(load) > 0;
 }
 

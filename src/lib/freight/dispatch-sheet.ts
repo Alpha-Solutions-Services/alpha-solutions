@@ -262,9 +262,12 @@ function buildAlerts(rows: DispatchSheetRow[], pendingCarriers: number): Dashboa
     });
   }
 
-  const unpaid = rows.filter(
-    (r) => r.balance > 0 || r.status.toLowerCase() === "unpaid",
-  );
+  const unpaid = rows.filter((r) => {
+    const status = r.status.toLowerCase();
+    if (status === "paid" || status.startsWith("paid")) return false;
+    if (r.invoice.toLowerCase() === "paid") return false;
+    return r.balance > 0 || status === "unpaid";
+  });
   if (unpaid.length > 0) {
     alerts.push({
       type: "payment",
@@ -273,7 +276,14 @@ function buildAlerts(rows: DispatchSheetRow[], pendingCarriers: number): Dashboa
     });
   }
 
-  const pendingInvoices = rows.filter((r) => r.invoice.toLowerCase() === "pending");
+  const pendingInvoices = rows.filter((r) => {
+    const status = r.status.toLowerCase();
+    if (status === "paid" || status.startsWith("paid")) return false;
+    if (r.invoice.toLowerCase() === "paid" || r.invoice.toLowerCase() === "sent") {
+      return false;
+    }
+    return r.invoice.toLowerCase() === "pending";
+  });
   if (pendingInvoices.length > 0) {
     alerts.push({
       type: "invoice",
@@ -320,7 +330,12 @@ export function buildDashboardFromRows(
   const fleet = buildFleetOverview(rows);
   const revenueChart = buildRevenueChart(rows);
   const revenueThisWeek = revenueChart.reduce((s, p) => s + p.amount, 0);
-  const unpaidTotal = rows.reduce((s, r) => s + Math.max(r.balance, 0), 0);
+  const unpaidTotal = rows.reduce((s, r) => {
+    const status = r.status.toLowerCase();
+    if (status === "paid" || status.startsWith("paid")) return s;
+    if (r.invoice.toLowerCase() === "paid") return s;
+    return s + Math.max(r.balance, 0);
+  }, 0);
 
   const carriersMap = new Map<string, DashboardCarrier>();
   for (const row of rows) {
@@ -399,20 +414,21 @@ export function buildDashboardFromRows(
   });
 
   const invoices: DashboardInvoice[] = rows
-    .filter((r) => r.rcInvoice > 0 || r.invoice || r.balance > 0)
+    .filter((r) => {
+      const status = r.status.toLowerCase();
+      if (status === "paid" || status.startsWith("paid")) return false;
+      if (r.invoice.toLowerCase() === "paid") return false;
+      const open = r.balance > 0 || status === "unpaid";
+      return open && r.dispatchFee > 0;
+    })
     .map((row, i) => ({
       invoice_id: row.invoice || `INV-${row.sr || i + 1}`,
       carrier: row.companyName || "—",
-      amount: row.rcInvoice,
+      amount: row.dispatchFee,
       received: row.received,
-      balance: row.balance,
+      balance: row.balance > 0 ? row.balance : row.dispatchFee,
       due_date: row.rcDate || row.deliveryDateTime || "—",
-      status:
-        row.balance > 0 || row.status.toLowerCase() === "unpaid"
-          ? "Unpaid"
-          : row.received >= row.rcInvoice && row.rcInvoice > 0
-            ? "Paid"
-            : row.invoice || "Pending",
+      status: "Unpaid",
     }));
 
   return {

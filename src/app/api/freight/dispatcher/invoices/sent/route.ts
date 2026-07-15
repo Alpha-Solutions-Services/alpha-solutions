@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   getNextInvoiceNumber,
   listSentInvoices,
+  reconcileSentInvoicesWithLoads,
   softDeleteSentInvoice,
   updateSentInvoice,
 } from "@/lib/freight/dispatch-sent-invoices-db";
@@ -46,6 +47,9 @@ export async function GET(req: NextRequest) {
     !tabParam || tabParam === "all" || tabParam === "*"
       ? undefined
       : tabParam;
+
+  // Re-sync Paid/Sent onto load board (fixes Invoice stuck on Pending).
+  await reconcileSentInvoicesWithLoads();
 
   const [invoices, nextInvoiceNumber] = await Promise.all([
     listSentInvoices(tab),

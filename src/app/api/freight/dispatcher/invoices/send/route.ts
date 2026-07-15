@@ -8,7 +8,12 @@ import {
   invoicePdfFilename,
 } from "@/lib/freight/dispatch-invoice";
 import { buildDispatchInvoicesForBatch } from "@/lib/freight/dispatch-invoice-service";
-import { recordSentInvoice } from "@/lib/freight/dispatch-sent-invoices-db";
+import {
+  isLoadBilledOnSentInvoice,
+  listBilledLoadKeys,
+  recordSentInvoice,
+} from "@/lib/freight/dispatch-sent-invoices-db";
+import { isInvoiceableLoad } from "@/lib/freight/dispatch-invoice";
 import { buildInvoicePdfWithPayment } from "@/lib/freight/dispatch-invoice-build";
 import { createClient } from "@/lib/supabase/server";
 
@@ -51,7 +56,10 @@ export async function POST(req: NextRequest) {
     const body = bodySchema.parse(await req.json());
     const dashboard = await buildDispatchDashboard(body.tab);
 
-    let loads = dashboard.loads;
+    const billed = await listBilledLoadKeys();
+    let loads = dashboard.loads.filter(
+      (l) => isInvoiceableLoad(l) && !isLoadBilledOnSentInvoice(l, billed),
+    );
     if (body.loadSrs?.length) {
       const srSet = new Set(body.loadSrs);
       loads = loads.filter((l) => srSet.has(l.sr));
