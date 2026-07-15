@@ -164,6 +164,29 @@ export async function fetchDispatchLoadsFromDb(
   return (data ?? []) as DbDispatchLoad[];
 }
 
+/** Distinct month tabs that actually have loads — merge into picker options. */
+export async function listDispatchMonthTabsFromDb(): Promise<string[]> {
+  const admin = getServiceRoleClient();
+  if (!admin) return [];
+
+  const { data, error } = await admin
+    .from("dispatch_loads")
+    .select("month_tab")
+    .is("deleted_at", null);
+
+  if (error) {
+    console.warn("[dispatch-loads-db] month tabs failed:", error.message);
+    return [];
+  }
+
+  const tabs = new Set<string>();
+  for (const row of data ?? []) {
+    const tab = String(row.month_tab ?? "").trim();
+    if (tab) tabs.add(tab);
+  }
+  return Array.from(tabs);
+}
+
 export async function fetchCarrierLoadsFromDb(opts: {
   companyName: string;
   carrierProfileId?: string;

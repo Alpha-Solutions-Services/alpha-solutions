@@ -121,40 +121,112 @@ export async function recordSentInvoice(params: {
   monthTab: string;
   paymentMethod?: InvoicePaymentMethod;
   sentBy: string;
-}): Promise<SentInvoiceRecord | null> {
+}): Promise<{ record: SentInvoiceRecord | null; error?: string }> {
   const admin = getServiceRoleClient();
-  if (!admin) return null;
+  if (!admin) {
+    return {
+      record: null,
+      error:
+        "Database unavailable (service role). Run supabase/dispatch-sent-invoices-schema.sql and set SUPABASE_SERVICE_ROLE_KEY.",
+    };
+  }
 
   const lineItems = buildSentInvoiceLineItems(params.invoice, params.loads);
   const invoiceDate = params.invoice.invoiceDate.toISOString().slice(0, 10);
   const dueDate = params.invoice.dueDate.toISOString().slice(0, 10);
+  const invoiceNumber = sanitizeText(String(params.invoice.invoiceNumber), 40);
+
+  const payload = {
+    invoice_number: invoiceNumber,
+    month_tab: sanitizeText(params.monthTab, 40),
+    carrier_name: sanitizeText(params.invoice.carrierName, 200),
+    carrier_email: params.invoice.billTo.email
+      ? sanitizeText(params.invoice.billTo.email, 200)
+      : null,
+    invoice_date: invoiceDate,
+    due_date: dueDate,
+    amount_total: sanitizeMoney(params.invoice.total),
+    amount_received: 0,
+    payment_status: "unpaid" as const,
+    payment_method: params.paymentMethod ?? null,
+    sent_by: params.sentBy,
+    sent_at: new Date().toISOString(),
+    line_items: lineItems,
+    deleted_at: null,
+  };
 
   const { data, error } = await admin
     .from("dispatch_sent_invoices")
-    .insert({
-      invoice_number: sanitizeText(String(params.invoice.invoiceNumber), 40),
-      month_tab: sanitizeText(params.monthTab, 40),
-      carrier_name: sanitizeText(params.invoice.carrierName, 200),
-      carrier_email: params.invoice.billTo.email
-        ? sanitizeText(params.invoice.billTo.email, 200)
-        : null,
-      invoice_date: invoiceDate,
-      due_date: dueDate,
-      amount_total: sanitizeMoney(params.invoice.total),
-      amount_received: 0,
-      payment_status: "unpaid",
-      payment_method: params.paymentMethod ?? null,
-      sent_by: params.sentBy,
-      line_items: lineItems,
-    })
+    .insert(payload)
     .select("*")
     .single();
 
   if (error) {
+    // Duplicate invoice number: revive/update the existing active row for this number.
+    const isDuplicate =
+      error.code === "23505" ||
+      /duplicate|unique/i.test(error.message ?? "");
+
+    if (isDuplicate) {
+      const { data: existing } = await admin
+        .from("dispatch_sent_invoices")
+        .select("id")
+        .ilike("invoice_number", invoiceNumber)
+        .is("deleted_at", null)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { data: updated, error: upErr } = await admin
+          .from("dispatch_sent_invoices")
+          .update({
+            month_tab: payload.month_tab,
+            carrier_name: payload.carrier_name,
+            carrier_email: payload.carrier_email,
+            invoice_date: payload.invoice_date,
+            due_date: payload.due_date,
+            amount_total: payload.amount_total,
+            amount_received: 0,
+            payment_status: "unpaid",
+            payment_method: payload.payment_method,
+            sent_by: payload.sent_by,
+            sent_at: payload.sent_at,
+            line_items: payload.line_items,
+          })
+          .eq("id", existing.id)
+          .select("*")
+          .single();
+
+        if (!upErr && updated) {
+          await markLoadsInvoiced(lineItems);
+          return { record: rowToRecord(updated as DbSentInvoice) };
+        }
+      }
+    }
+
     console.error("[dispatch-sent-invoices-db] insert failed:", error);
-    return null;
+    return {
+      record: null,
+      error:
+        error.message?.includes("does not exist") || error.code === "42P01"
+          ? "Sent invoices table missing — run supabase/dispatch-sent-invoices-schema.sql"
+          : error.message || "Could not save sent invoice record",
+    };
   }
-  return rowToRecord(data as DbSentInvoice);
+
+  await markLoadsInvoiced(lineItems);
+  return { record: rowToRecord(data as DbSentInvoice) };
+}
+
+async function markLoadsInvoiced(lineItems: SentInvoiceLineItem[]): Promise<void> {
+  const admin = getServiceRoleClient();
+  if (!admin) return;
+  for (const item of lineItems) {
+    if (!item.db_id) continue;
+    await admin
+      .from("dispatch_loads")
+      .update({ invoice: "Sent" })
+      .eq("id", item.db_id);
+  }
 }
 
 export async function listSentInvoices(monthTab?: string): Promise<SentInvoiceRecord[]> {
@@ -205,6 +277,7 @@ async function syncLoadsForPayment(
         .from("dispatch_loads")
         .update({
           status: "Paid",
+          invoice: "Paid",
           received,
           balance: 0,
         })
@@ -231,6 +304,7 @@ async function syncLoadsForPayment(
         .from("dispatch_loads")
         .update({
           status: "Partial",
+          invoice: "Partial",
           received,
           balance: computeBalance(fee, received),
         })
@@ -246,6 +320,7 @@ async function syncLoadsForPayment(
         .from("dispatch_loads")
         .update({
           status: "Unpaid",
+          invoice: "Sent",
           received: 0,
           balance: item.amount,
         })

@@ -10,11 +10,23 @@ import {
   dbDispatchLoadToSheetRow,
   dbLoadToDashboardLoad,
   fetchDispatchLoadsFromDb,
+  listDispatchMonthTabsFromDb,
 } from "./dispatch-loads-db";
 import { loadCarrierRoster, loadDriverRoster } from "./dispatch-roster";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
-import { resolveActiveMonthTab } from "./dispatch-sheet-tabs";
+import { listMonthTabOptions, parseMonthTab, resolveActiveMonthTab } from "./dispatch-sheet-tabs";
+
+function mergeAvailableTabs(dbTabs: string[]): string[] {
+  const configured = listMonthTabOptions();
+  const set = new Set([...configured, ...dbTabs]);
+  return Array.from(set).sort((a, b) => {
+    const da = parseMonthTab(a);
+    const db = parseMonthTab(b);
+    if (da && db) return da.getTime() - db.getTime();
+    return a.localeCompare(b);
+  });
+}
 
 function attachLoadsToRoster(
   roster: DispatchDashboardData["carrier_roster"],
@@ -71,6 +83,12 @@ function finalizeDashboard(
   return dashboard;
 }
 
+async function applyAvailableTabs(dashboard: DispatchDashboardData): Promise<DispatchDashboardData> {
+  const dbTabs = await listDispatchMonthTabsFromDb();
+  dashboard.sheet_meta.available_tabs = mergeAvailableTabs(dbTabs);
+  return dashboard;
+}
+
 export async function buildDispatchDashboard(
   requestedTab?: string | null,
 ): Promise<DispatchDashboardData> {
@@ -116,23 +134,41 @@ export async function buildDispatchDashboard(
 
   // Supabase is source of truth whenever service role is configured — even with 0 loads.
   if (admin) {
-    const dbRows = await fetchDispatchLoadsFromDb(activeTab);
+    const dbTabs = await listDispatchMonthTabsFromDb();
+    let tab = activeTab;
+    // If user did not pick a tab and current month is empty, open the latest month that has loads.
+    if (!requestedTab?.trim() && dbTabs.length > 0) {
+      const currentRows = await fetchDispatchLoadsFromDb(tab);
+      if (currentRows.length === 0) {
+        // Prefer latest month that actually has loads (not empty configured months).
+        const sorted = [...dbTabs].sort((a, b) => {
+          const da = parseMonthTab(a);
+          const db = parseMonthTab(b);
+          if (da && db) return da.getTime() - db.getTime();
+          return a.localeCompare(b);
+        });
+        tab = sorted[sorted.length - 1] ?? tab;
+      }
+    }
+    const dbRows = await fetchDispatchLoadsFromDb(tab);
     const sheetRows = dbRows.map(dbDispatchLoadToSheetRow);
     const dashboard = buildDashboardFromRows(sheetRows, {
       pendingCarriers,
       sheetConnected: true,
       sheetSource: "supabase",
-      activeTab,
+      activeTab: tab,
     });
     const loads = dbRows.map((row, i) => dbLoadToDashboardLoad(row, i));
     dashboard.loads = enrichLoadsWithCarrierRoster(loads, carrierRosterResult.carriers);
-    return finalizeDashboard(dashboard, {
-      pendingCarriers,
-      carrierRosterResult,
-      driverRoster,
-      supabaseCarriers,
-      source: "supabase",
-    });
+    return applyAvailableTabs(
+      finalizeDashboard(dashboard, {
+        pendingCarriers,
+        carrierRosterResult,
+        driverRoster,
+        supabaseCarriers,
+        source: "supabase",
+      }),
+    );
   }
 
   try {
@@ -151,13 +187,15 @@ export async function buildDispatchDashboard(
         carrierRosterResult.carriers,
       );
 
-      return finalizeDashboard(dashboard, {
-        pendingCarriers,
-        carrierRosterResult,
-        driverRoster,
-        supabaseCarriers,
-        source: "sheet",
-      });
+      return applyAvailableTabs(
+        finalizeDashboard(dashboard, {
+          pendingCarriers,
+          carrierRosterResult,
+          driverRoster,
+          supabaseCarriers,
+          source: "sheet",
+        }),
+      );
     }
   } catch (e) {
     console.error("[dispatch-dashboard] sheet fetch failed:", e);
@@ -181,5 +219,5 @@ export async function buildDispatchDashboard(
       "Supabase service role not configured — set SUPABASE_SERVICE_ROLE_KEY to add and edit loads",
     severity: "high",
   });
-  return empty;
+  return applyAvailableTabs(empty);
 }

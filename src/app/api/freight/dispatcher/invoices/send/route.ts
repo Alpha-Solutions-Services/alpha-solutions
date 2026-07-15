@@ -108,19 +108,38 @@ export async function POST(req: NextRequest) {
       });
 
       if (sent.ok) {
-        await recordSentInvoice({
+        const monthTab =
+          (body.tab?.trim() || dashboard.sheet_meta.active_tab || "").trim();
+        const saved = await recordSentInvoice({
           invoice,
           loads,
-          monthTab: dashboard.sheet_meta.active_tab,
+          monthTab,
           paymentMethod: body.paymentMethod,
           sentBy: user.id,
         });
+
+        if (!saved.record) {
+          results.push({
+            carrier: invoice.carrierName,
+            ok: false,
+            error:
+              saved.error ??
+              "Email sent but invoice was not saved to Sent tab — check DB schema",
+          });
+          continue;
+        }
+
+        results.push({
+          carrier: invoice.carrierName,
+          ok: true,
+        });
+        continue;
       }
 
       results.push({
         carrier: invoice.carrierName,
-        ok: sent.ok,
-        error: sent.ok ? undefined : sent.error ?? "Email failed",
+        ok: false,
+        error: sent.error ?? "Email failed",
       });
     }
 

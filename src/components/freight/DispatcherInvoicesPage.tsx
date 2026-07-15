@@ -42,7 +42,7 @@ function statusBadge(status: SentInvoiceRecord["paymentStatus"]) {
 }
 
 export function DispatcherInvoicesPage() {
-  const { data, loading, error, activeTab, changeTab } = useDispatchDashboard();
+  const { data, loading, error, activeTab, changeTab, refresh } = useDispatchDashboard();
   const searchParams = useSearchParams();
   const generateMode = searchParams.get("action") === "generate";
   const [pageTab, setPageTab] = useState<PageTab>("create");
@@ -108,8 +108,8 @@ export function DispatcherInvoicesPage() {
     setSentLoading(true);
     setSentError(null);
     try {
-      const qs = activeTab ? `?tab=${encodeURIComponent(activeTab)}` : "";
-      const res = await fetch(`/api/freight/dispatcher/invoices/sent${qs}`);
+      // Load all months so a send always appears on Sent (not hidden by wrong month filter).
+      const res = await fetch("/api/freight/dispatcher/invoices/sent?tab=all");
       const body = (await res.json()) as {
         error?: string;
         invoices?: SentInvoiceRecord[];
@@ -123,7 +123,7 @@ export function DispatcherInvoicesPage() {
     } finally {
       setSentLoading(false);
     }
-  }, [activeTab]);
+  }, []);
 
   useEffect(() => {
     void loadSentInvoices();
@@ -234,13 +234,16 @@ export function DispatcherInvoicesPage() {
       const failed = body.results?.filter((r) => !r.ok) ?? [];
       if (failed.length) {
         setSendSuccess(
-          `Sent ${body.sent ?? 0} invoice(s). ${failed.length} failed: ${failed.map((f) => f.carrier).join(", ")}`,
+          `Sent ${body.sent ?? 0} invoice(s). ${failed.length} failed: ${failed
+            .map((f) => `${f.carrier}${f.error ? ` (${f.error})` : ""}`)
+            .join("; ")}`,
         );
       } else {
         setSendSuccess(`Sent ${body.sent ?? 0} invoice email(s) with PDF attached.`);
       }
-      await loadSentInvoices();
       setPageTab("sent");
+      await loadSentInvoices();
+      await refresh(activeTab);
     } catch (e) {
       setGenError(e instanceof Error ? e.message : "Could not send invoices");
     } finally {
@@ -272,6 +275,7 @@ export function DispatcherInvoicesPage() {
       const payload = (await res.json()) as { error?: string; invoice?: SentInvoiceRecord };
       if (!res.ok) throw new Error(payload.error ?? "Update failed");
       await loadSentInvoices();
+      await refresh(activeTab);
     } catch (e) {
       setSentError(e instanceof Error ? e.message : "Update failed");
     }
@@ -584,7 +588,7 @@ export function DispatcherInvoicesPage() {
                 ) : sentInvoices.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-10 text-center text-[var(--color-muted)]">
-                      No sent invoices yet for this month. Send an invoice from the Create tab.
+                      No sent invoices yet. Send an invoice from the Create tab.
                     </td>
                   </tr>
                 ) : (

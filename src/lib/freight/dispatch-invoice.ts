@@ -109,7 +109,8 @@ function computeDispatchFee(load: DashboardLoad): number {
 function isUnpaidStatus(status: string): boolean {
   const s = normalizeStatus(status);
   if (!s || s === "—" || s === "-") return false;
-  return s === "unpaid" || s.includes("unpaid") || s.includes("pending") || s.includes("due");
+  // Payment STATUS only — do NOT treat invoice workflow "Pending" as unpaid.
+  return s === "unpaid" || s.includes("unpaid") || s === "due" || s.endsWith(" due");
 }
 
 function isPartialStatus(status: string): boolean {
@@ -124,15 +125,14 @@ function isPaidStatus(status: string): boolean {
   return s === "paid" || s.includes("paid in full") || s.startsWith("paid");
 }
 
-/** True when the sheet STATUS / invoice column shows this dispatch fee is fully paid. */
+/** True when the sheet STATUS column (payment) shows this dispatch fee is fully paid. */
 export function isDispatchFeePaid(load: DashboardLoad): boolean {
   const status = load.status;
-  const invoiceStatus = load.invoice_status;
 
-  if (isUnpaidStatus(status) || isUnpaidStatus(invoiceStatus)) return false;
-  if (isPartialStatus(status) || isPartialStatus(invoiceStatus)) return false;
-
-  if (isPaidStatus(status) || isPaidStatus(invoiceStatus)) return true;
+  // Payment STATUS wins over invoice workflow column (Pending/Sent/etc).
+  if (isPaidStatus(status)) return true;
+  if (isUnpaidStatus(status)) return false;
+  if (isPartialStatus(status)) return false;
 
   const fee = computeDispatchFee(load);
   if (fee <= 0) return true;
@@ -154,7 +154,6 @@ export function computeOutstandingDispatchFee(load: DashboardLoad): number {
 
   if (
     isPartialStatus(load.status) ||
-    isPartialStatus(load.invoice_status) ||
     load.received > 0
   ) {
     const remaining = fee - Math.max(load.received, 0);
@@ -217,6 +216,9 @@ export function resolveCarrierName(load: DashboardLoad): string {
 
 export function isInvoiceableLoad(load: DashboardLoad): boolean {
   if (!resolveCarrierName(load)) return false;
+  // Invoice workflow column may also say Paid after Sent-tab mark-paid sync.
+  const inv = normalizeStatus(load.invoice_status ?? "");
+  if (inv === "paid") return false;
   return computeOutstandingDispatchFee(load) > 0;
 }
 

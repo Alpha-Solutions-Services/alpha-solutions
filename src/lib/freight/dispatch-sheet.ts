@@ -507,23 +507,30 @@ export async function fetchDispatchSheetCsv(requestedTab?: string | null): Promi
   }
 
   const gid = process.env.GOOGLE_DISPATCH_SHEET_GID?.trim();
-  if (gid) {
+  if (gid && (!activeTab || !resolveGidForMonthTab(activeTab))) {
     attempts.push({
       label: `gid:${gid}`,
       url: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
     });
   }
 
-  attempts.push({
-    label: "gid:0",
-    url: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`,
-  });
+  // Never fall back to gid:0 when a specific month was requested — that mixes months.
+  if (!requestedTab?.trim()) {
+    attempts.push({
+      label: "gid:0",
+      url: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`,
+    });
+  }
 
   for (const attempt of attempts) {
     const csv = await fetchCsvUrl(attempt.url);
     if (csv) {
       return { csv, source: attempt.url, activeTab: activeTab || attempt.label };
     }
+  }
+
+  if (requestedTab?.trim()) {
+    return { csv: null, source: "empty-month", activeTab };
   }
 
   throw new Error(`Google Sheet export failed for workbook ${sheetId}`);

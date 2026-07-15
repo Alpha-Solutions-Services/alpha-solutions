@@ -39,7 +39,14 @@ export async function GET(req: NextRequest) {
   const auth = await requireDispatcher();
   if ("error" in auth && auth.error) return auth.error;
 
-  const tab = req.nextUrl.searchParams.get("tab") ?? undefined;
+  // Default: all months (so Sent tab always shows what was emailed).
+  // Pass ?tab=Month Year to filter; ?tab=all is explicit no-filter.
+  const tabParam = req.nextUrl.searchParams.get("tab");
+  const tab =
+    !tabParam || tabParam === "all" || tabParam === "*"
+      ? undefined
+      : tabParam;
+
   const [invoices, nextInvoiceNumber] = await Promise.all([
     listSentInvoices(tab),
     getNextInvoiceNumber(),
