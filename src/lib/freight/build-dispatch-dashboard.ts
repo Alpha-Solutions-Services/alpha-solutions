@@ -11,6 +11,7 @@ import {
   dbLoadToDashboardLoad,
   fetchDispatchLoadsFromDb,
   listDispatchMonthTabsFromDb,
+  reassignMonthTabsFromRcDates,
 } from "./dispatch-loads-db";
 import { loadCarrierRoster, loadDriverRoster } from "./dispatch-roster";
 import { createClient } from "@/lib/supabase/server";
@@ -134,6 +135,9 @@ export async function buildDispatchDashboard(
 
   // Supabase is source of truth whenever service role is configured — even with 0 loads.
   if (admin) {
+    // Keep month_tab aligned with RC Date (mm/dd/yyyy) so July loads show under July.
+    await reassignMonthTabsFromRcDates();
+
     const dbTabs = await listDispatchMonthTabsFromDb();
     let tab = activeTab;
     // If user did not pick a tab and current month is empty, open the latest month that has loads.

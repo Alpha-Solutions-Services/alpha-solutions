@@ -11,6 +11,7 @@ import type {
 } from "./dispatch-dashboard-types";
 import {
   listMonthTabOptions,
+  parseRcDate,
   resolveActiveMonthTab,
   resolveGidForMonthTab,
 } from "./dispatch-sheet-tabs";
@@ -150,9 +151,7 @@ export function parseDispatchCsv(csv: string): DispatchSheetRow[] {
 }
 
 function parseFlexibleDate(value: string): Date | null {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return parseRcDate(value);
 }
 
 function isToday(value: string): boolean {

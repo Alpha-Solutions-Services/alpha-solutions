@@ -30,6 +30,51 @@ export function formatMonthTab(date: Date): string {
   return `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+/**
+ * Parse RC Date strings used on the load board (prefer mm/dd/yyyy).
+ * Uses local calendar parts so month assignment is not shifted by UTC.
+ */
+export function parseRcDate(value: string): Date | null {
+  const raw = value?.trim();
+  if (!raw || raw === "—" || raw === "-") return null;
+
+  const us = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (us) {
+    const month = Number.parseInt(us[1], 10) - 1;
+    const day = Number.parseInt(us[2], 10);
+    let year = Number.parseInt(us[3], 10);
+    if (year < 100) year += 2000;
+    if (month < 0 || month > 11 || day < 1 || day > 31) return null;
+    const d = new Date(year, month, day);
+    if (d.getFullYear() !== year || d.getMonth() !== month || d.getDate() !== day) {
+      return null;
+    }
+    return d;
+  }
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const year = Number.parseInt(iso[1], 10);
+    const month = Number.parseInt(iso[2], 10) - 1;
+    const day = Number.parseInt(iso[3], 10);
+    const d = new Date(year, month, day);
+    if (d.getFullYear() !== year || d.getMonth() !== month || d.getDate() !== day) {
+      return null;
+    }
+    return d;
+  }
+
+  const fallback = new Date(raw);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
+/** Month tab driven by RC Date, e.g. "7/9/2026" → "July 2026". */
+export function monthTabFromRcDate(rcDate: string): string | null {
+  const d = parseRcDate(rcDate);
+  if (!d) return null;
+  return formatMonthTab(d);
+}
+
 export function parseMonthTab(tab: string): Date | null {
   const match = tab.trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
   if (!match) return null;

@@ -1,5 +1,6 @@
 import type { DashboardLoad, DispatchSheetRow } from "./dispatch-dashboard-types";
 import { splitRoute } from "./dispatch-sheet";
+import { monthTabFromRcDate } from "./dispatch-sheet-tabs";
 import { computeBalance, computeDispatchFee } from "./load-notifications";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { sanitizeMoney, sanitizeText } from "./api-security";
@@ -171,7 +172,7 @@ export async function listDispatchMonthTabsFromDb(): Promise<string[]> {
 
   const { data, error } = await admin
     .from("dispatch_loads")
-    .select("month_tab")
+    .select("month_tab, rc_date")
     .is("deleted_at", null);
 
   if (error) {
@@ -181,10 +182,62 @@ export async function listDispatchMonthTabsFromDb(): Promise<string[]> {
 
   const tabs = new Set<string>();
   for (const row of data ?? []) {
+    const fromRc = monthTabFromRcDate(String(row.rc_date ?? ""));
+    if (fromRc) tabs.add(fromRc);
     const tab = String(row.month_tab ?? "").trim();
     if (tab) tabs.add(tab);
   }
   return Array.from(tabs);
+}
+
+/**
+ * Move each load into the month of its RC Date (mm/dd/yyyy).
+ * Fixes loads saved under the wrong picker month (e.g. July RC stuck in June).
+ */
+export async function reassignMonthTabsFromRcDates(): Promise<number> {
+  const admin = getServiceRoleClient();
+  if (!admin) return 0;
+
+  const { data, error } = await admin
+    .from("dispatch_loads")
+    .select("id, month_tab, rc_date, sr")
+    .is("deleted_at", null);
+
+  if (error || !data?.length) {
+    if (error) console.warn("[dispatch-loads-db] reassign fetch failed:", error.message);
+    return 0;
+  }
+
+  let moved = 0;
+  for (const row of data) {
+    const target = monthTabFromRcDate(String(row.rc_date ?? ""));
+    if (!target) continue;
+    const current = String(row.month_tab ?? "").trim();
+    if (current === target) continue;
+
+    let sr = typeof row.sr === "number" ? row.sr : Number(row.sr) || 0;
+    // Avoid (month_tab, sr) collisions when moving into a month that already has that SR.
+    const { data: clash } = await admin
+      .from("dispatch_loads")
+      .select("id")
+      .eq("month_tab", target)
+      .eq("sr", sr)
+      .is("deleted_at", null)
+      .neq("id", row.id)
+      .maybeSingle();
+    if (clash?.id) {
+      sr = await nextSrForTab(target);
+    }
+
+    const { error: upErr } = await admin
+      .from("dispatch_loads")
+      .update({ month_tab: target, sr })
+      .eq("id", row.id);
+
+    if (!upErr) moved += 1;
+    else console.warn("[dispatch-loads-db] reassign failed:", upErr.message);
+  }
+  return moved;
 }
 
 export async function fetchCarrierLoadsFromDb(opts: {
@@ -264,13 +317,21 @@ export async function insertDispatchLoad(
   const fee = computeDispatchFee(rcInvoice, dispatchPercent, payload.dispatchFee);
   const received = sanitizeMoney(payload.received ?? 0);
   const balance = payload.balance != null ? sanitizeMoney(payload.balance) : computeBalance(fee, received);
-  const sr = await nextSrForTab(payload.monthTab);
+  const rcDate = payload.rcDate
+    ? sanitizeText(payload.rcDate, 40)
+    : new Date().toLocaleDateString("en-US");
+  // RC Date (mm/dd/yyyy) owns the month tab — not the UI picker alone.
+  const monthTab =
+    monthTabFromRcDate(rcDate) ||
+    sanitizeText(payload.monthTab, 40) ||
+    "Unassigned";
+  const sr = await nextSrForTab(monthTab);
 
   const { data, error } = await admin
     .from("dispatch_loads")
     .insert({
       created_by: createdBy,
-      month_tab: sanitizeText(payload.monthTab, 40),
+      month_tab: monthTab,
       sr,
       company_name: sanitizeText(payload.companyName, 200),
       broker: payload.broker ? sanitizeText(payload.broker, 200) : null,
@@ -296,9 +357,7 @@ export async function insertDispatchLoad(
       phone: payload.phone ? sanitizeText(payload.phone, 40) : null,
       carrier_profile_id: payload.carrierProfileId ?? null,
       assigned_driver_profile_id: payload.assignedDriverProfileId ?? null,
-      rc_date: payload.rcDate
-        ? sanitizeText(payload.rcDate, 40)
-        : new Date().toLocaleDateString("en-US"),
+      rc_date: rcDate,
       invoice: payload.invoice ? sanitizeText(payload.invoice, 40) : "Pending",
       notes: payload.notes ? sanitizeText(payload.notes, 500) : null,
       claim: payload.claim ? sanitizeText(payload.claim, 200) : null,
@@ -340,7 +399,7 @@ export async function updateDispatchLoad(
 
   const { data: existing } = await admin
     .from("dispatch_loads")
-    .select("rc_invoice, dispatch_percent, dispatch_fee, received")
+    .select("rc_invoice, dispatch_percent, dispatch_fee, received, month_tab, rc_date, sr")
     .eq("id", id)
     .maybeSingle();
 
@@ -371,7 +430,32 @@ export async function updateDispatchLoad(
   }
   if (patch.email !== undefined) row.email = patch.email ? sanitizeText(patch.email, 200) : null;
   if (patch.phone !== undefined) row.phone = patch.phone ? sanitizeText(patch.phone, 40) : null;
-  if (patch.rcDate !== undefined) row.rc_date = sanitizeText(patch.rcDate, 40);
+  if (patch.rcDate !== undefined) {
+    const rcDate = sanitizeText(patch.rcDate, 40);
+    row.rc_date = rcDate;
+    const targetMonth = monthTabFromRcDate(rcDate);
+    const currentMonth = String(existing?.month_tab ?? "").trim();
+    if (targetMonth && targetMonth !== currentMonth) {
+      row.month_tab = targetMonth;
+      let sr = typeof existing?.sr === "number" ? existing.sr : Number(existing?.sr) || 0;
+      const { data: clash } = await admin
+        .from("dispatch_loads")
+        .select("id")
+        .eq("month_tab", targetMonth)
+        .eq("sr", sr)
+        .is("deleted_at", null)
+        .neq("id", id)
+        .maybeSingle();
+      if (clash?.id) {
+        sr = await nextSrForTab(targetMonth);
+        row.sr = sr;
+      }
+    }
+  } else if (patch.monthTab !== undefined) {
+    // Prefer RC Date month when available; otherwise allow explicit tab.
+    const fromRc = monthTabFromRcDate(String(existing?.rc_date ?? ""));
+    row.month_tab = fromRc || sanitizeText(patch.monthTab, 40);
+  }
   if (patch.invoice !== undefined) row.invoice = sanitizeText(patch.invoice, 40);
   if (patch.notes !== undefined) row.notes = patch.notes ? sanitizeText(patch.notes, 500) : null;
   if (patch.claim !== undefined) row.claim = patch.claim ? sanitizeText(patch.claim, 200) : null;
