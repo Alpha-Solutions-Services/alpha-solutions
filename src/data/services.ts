@@ -93,5 +93,5 @@ export const SERVICES: Service[] = [
   { pillar: 5, slug: 'freight-carrier-sales',         name: 'Carrier sales & lane positioning', price: 'Custom retainer', description: '',      image: 'https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?w=800&q=80' },
   { pillar: 5, slug: 'freight-dat-management',        name: 'DAT load board management',        price: 'Custom retainer', description: '',      image: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=800&q=80' },
   { pillar: 5, slug: 'freight-fmcsa-compliance',      name: 'FMCSA compliance support',         price: 'Custom program', description: '',       featured: true,  image: 'https://i.pinimg.com/736x/3d/ce/d3/3dced3edf5465a8fa9cf521b32f34c2a.jpg' },
-  { pillar: 5, slug: 'freight-dispatch-training',     name: 'Dispatch training (online course)',  price: '$120',            description: '',       featured: true,  primaryHref: '/freight/dispatch-training', image: 'https://i.pinimg.com/736x/90/ed/98/90ed982115e40fe5de7b0677d31110ab.jpg' },
+  { pillar: 5, slug: 'freight-dispatch-training',     name: 'Dispatch training (online course)',  price: '$120',            description: '',       featured: true,  primaryHref: 'https://learndispatch.alphasolutions.software/', image: 'https://i.pinimg.com/736x/90/ed/98/90ed982115e40fe5de7b0677d31110ab.jpg' },
 ]

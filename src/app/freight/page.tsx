@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { absoluteUrl, COMPANY, SITE_BRAND_SHORT } from "@/data/site";
+import { LEARN_DISPATCH_URL, TMS_URL } from "@/lib/product-hosts";
 
 const WHATSAPP = "https://wa.me/923494206922";
 
@@ -201,18 +202,18 @@ export default function FreightLandingPage() {
             >
               Message on WhatsApp
             </a>
-            <Link
-              href="/freight/login"
+            <a
+              href={TMS_URL}
               className="inline-flex min-w-[220px] items-center justify-center rounded-lg border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 px-8 py-3.5 text-sm font-semibold text-[var(--color-accent)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/15"
             >
               Freight Portal
-            </Link>
-            <Link
-              href="/freight/student"
+            </a>
+            <a
+              href={LEARN_DISPATCH_URL}
               className="inline-flex min-w-[220px] items-center justify-center rounded-lg border border-[var(--color-border)] px-8 py-3.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)]/50 hover:text-[var(--color-accent)]"
             >
               Academy &amp; training
-            </Link>
+            </a>
           </div>
         </div>
       </header>
@@ -303,7 +304,7 @@ export default function FreightLandingPage() {
       <section className="border-b border-[var(--color-border)] px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <Link
-            href="/freight/student/enroll"
+            href={LEARN_DISPATCH_URL}
             className="block overflow-hidden rounded-2xl border-2 border-[var(--color-accent)]/50 bg-[var(--color-accent-dim)] p-8 text-center transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/15 sm:p-10"
           >
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-accent)]">

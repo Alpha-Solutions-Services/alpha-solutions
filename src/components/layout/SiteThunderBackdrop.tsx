@@ -17,7 +17,7 @@ export function SiteThunderBackdrop() {
   if (
     pathname.startsWith("/portal") ||
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/freight")
+    (pathname.startsWith("/freight/") && pathname !== "/freight")
   ) {
     return null;
   }

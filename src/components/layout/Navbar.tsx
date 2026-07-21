@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PILLARS } from "@/data/services";
+import { PORTAL_URL, TMS_URL } from "@/lib/product-hosts";
 
 function useHash() {
   const [hash, setHash] = useState("");
@@ -248,8 +249,8 @@ export function Navbar() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center justify-end gap-2 sm:gap-3">
-          <Link
-            href={isFreightActive ? "/freight/login" : "/portal/login"}
+          <a
+            href={isFreightActive ? TMS_URL : `${PORTAL_URL}/login`}
             className={clsx(
               "hidden shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-opacity xl:gap-2 xl:px-4 xl:text-sm xl:inline-flex",
               "bg-[var(--color-accent)] text-[#05080F] hover:opacity-90",
@@ -260,7 +261,7 @@ export function Navbar() {
           >
             <Shield className="h-4 w-4 shrink-0" aria-hidden />
             {isFreightActive ? "Freight Portal" : "Client Portal"}
-          </Link>
+          </a>
 
           <button
             type="button"
@@ -384,8 +385,8 @@ export function Navbar() {
                 Contact
               </NavLink>
 
-              <Link
-                href={isFreightActive ? "/freight/login" : "/portal/login"}
+              <a
+                href={isFreightActive ? TMS_URL : `${PORTAL_URL}/login`}
                 onClick={() => setMobileOpen(false)}
                 className={clsx(
                   "mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold",
@@ -394,7 +395,7 @@ export function Navbar() {
               >
                 <Shield className="h-4 w-4" aria-hidden />
                 {isFreightActive ? "Freight Portal" : "Client Portal"}
-              </Link>
+              </a>
 
               <a
                 href="https://wa.me/923494206922"

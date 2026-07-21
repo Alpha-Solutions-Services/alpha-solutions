@@ -118,6 +118,44 @@ export async function POST(req: NextRequest) {
           text,
           html,
         });
+
+        // Client confirmation (does not fail the request if this send fails)
+        const portalUrl =
+          process.env.NEXT_PUBLIC_PORTAL_URL?.trim() ||
+          "https://portal.alphasolutions.software";
+        try {
+          await transporter.sendMail({
+            from,
+            to: data.email,
+            subject: "We received your inquiry — Alpha Solutions",
+            text: [
+              `Hi ${data.name},`,
+              "",
+              "Thanks for contacting Alpha Solutions. We received your inquiry and will get back to you soon.",
+              "",
+              `Service: ${data.service}`,
+              `Message: ${data.message}`,
+              "",
+              `Client portal: ${portalUrl}/login`,
+              "",
+              "— Alpha Solutions Services LLC",
+            ].join("\n"),
+            html: `
+              <div style="font-family:Segoe UI,system-ui,sans-serif;background:#05080f;color:#edf2f8;padding:24px;">
+                <div style="max-width:560px;margin:0 auto;background:#0b1120;border:1px solid rgba(56,139,253,0.2);border-radius:12px;padding:28px;">
+                  <p style="color:#38a3ff;font-size:12px;text-transform:uppercase;letter-spacing:0.12em;">Inquiry received</p>
+                  <h2 style="margin:8px 0 16px;color:#edf2f8;">Hi ${data.name},</h2>
+                  <p>Thanks for contacting Alpha Solutions. We received your inquiry and will get back to you soon.</p>
+                  <p style="color:#6a8caf;font-size:14px;"><strong>Service:</strong> ${data.service}</p>
+                  <blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #38a3ff;background:#0f1829;">${data.message.replace(/\n/g, "<br/>")}</blockquote>
+                  <p><a href="${portalUrl}/login" style="color:#38a3ff;">Open client portal</a></p>
+                </div>
+              </div>
+            `,
+          });
+        } catch (confirmErr) {
+          console.error("[contact] client confirmation email failed:", confirmErr);
+        }
       } catch (err) {
         console.error("[contact] SMTP sendMail failed:", err);
         return NextResponse.json(

@@ -8,7 +8,26 @@ import {
   deliverAuthNotifications,
   isFirstAuthSession,
 } from "@/lib/email/auth-notify";
+import { resolveExternalProductRedirect } from "@/lib/product-hosts";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+
+/** Prefer product subdomains — marketing site no longer hosts portals. */
+function productRedirect(origin: string, pathWithQuery: string): string {
+  const raw = pathWithQuery.startsWith("/") ? pathWithQuery : `/${pathWithQuery}`;
+  const qIndex = raw.indexOf("?");
+  const pathname = qIndex >= 0 ? raw.slice(0, qIndex) : raw;
+  const query = qIndex >= 0 ? raw.slice(qIndex + 1) : "";
+  const external = resolveExternalProductRedirect(pathname);
+  if (external) {
+    if (!query) return external;
+    const dest = new URL(external);
+    new URLSearchParams(query).forEach((value, key) => {
+      dest.searchParams.set(key, value);
+    });
+    return dest.toString();
+  }
+  return `${origin}${raw}`;
+}
 
 function scheduleOAuthAuthNotify(
   request: NextRequest,
@@ -51,6 +70,8 @@ function scheduleOAuthAuthNotify(
  * Configure this URL in Supabase Auth → URL configuration → Redirect URLs:
  *   https://<your-domain>/auth/callback
  *   http://localhost:3000/auth/callback
+ *
+ * Portal destinations resolve to product hosts (portal / TMS / learndispatch).
  */
 export async function GET(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -79,7 +100,10 @@ export async function GET(request: NextRequest) {
 
   if (!url || !anon || !code) {
     return NextResponse.redirect(
-      `${origin}${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`
+      productRedirect(
+        origin,
+        `${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`,
+      ),
     );
   }
 
@@ -91,7 +115,7 @@ export async function GET(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) =>
-          cookieStore.set(name, value, options)
+          cookieStore.set(name, value, options),
         );
       },
     },
@@ -100,7 +124,10 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
     return NextResponse.redirect(
-      `${origin}${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`
+      productRedirect(
+        origin,
+        `${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`,
+      ),
     );
   }
 
@@ -108,25 +135,30 @@ export async function GET(request: NextRequest) {
   const user = userData?.user ?? null;
   if (userErr && !user) {
     return NextResponse.redirect(
-      `${origin}${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`
+      productRedirect(
+        origin,
+        `${nextWantsAdmin ? "/admin/login" : "/portal/login"}?error=auth`,
+      ),
     );
   }
 
   // Freight OAuth: set role on first login, then route by role/status.
   if (nextIsFreight || freightFlag) {
     if (!user?.id) {
-      return NextResponse.redirect(`${origin}/freight/login?error=auth`);
+      return NextResponse.redirect(
+        productRedirect(origin, "/freight/login?error=auth"),
+      );
     }
     if (freightRole === "driver") {
-      // Drivers are invite-only (account is created via invite flow).
-      return NextResponse.redirect(`${origin}/freight/login?error=invite_only`);
+      return NextResponse.redirect(
+        productRedirect(origin, "/freight/login?error=invite_only"),
+      );
     }
 
     const admin = getServiceRoleClient();
     if (admin && freightRole) {
       const superAdmin = isSuperAdminEmail(user.email);
 
-      // Create or update the profile role if missing (or if super admin wants to switch roles).
       const { data: existing } = await admin
         .from("profiles")
         .select("id, role")
@@ -142,26 +174,19 @@ export async function GET(request: NextRequest) {
           carrier_status: freightRole === "carrier" ? "pending" : null,
         });
       } else {
-        // Default profile role is `client` (schema default). Treat it like "unset" so
-        // the role card the user picked (carrier, student, …) actually applies.
-        const isUnsetOrGeneric =
-          !existing.role || existing.role === "client";
+        const isUnsetOrGeneric = !existing.role || existing.role === "client";
         const mayApplyFreightCard =
-          superAdmin ||
-          isUnsetOrGeneric ||
-          existing.role === freightRole;
+          superAdmin || isUnsetOrGeneric || existing.role === freightRole;
         if (mayApplyFreightCard && existing.role !== freightRole) {
           await admin.from("profiles").update({ role: freightRole }).eq("id", user.id);
         }
       }
 
-      // Keep auth metadata aligned (non-blocking).
       await admin.auth.admin
         .updateUserById(user.id, { user_metadata: { role: freightRole } })
         .catch(() => {});
     }
 
-    // Determine where to send the user next based on their stored profile.
     const profileRes = admin
       ? await admin
           .from("profiles")
@@ -190,7 +215,11 @@ export async function GET(request: NextRequest) {
       | "instructor"
       | null;
 
-    if (!role) return NextResponse.redirect(`${origin}/freight/login?error=profile`);
+    if (!role) {
+      return NextResponse.redirect(
+        productRedirect(origin, "/freight/login?error=profile"),
+      );
+    }
 
     scheduleOAuthAuthNotify(request, user, role);
 
@@ -199,45 +228,62 @@ export async function GET(request: NextRequest) {
         !isSuperAdminEmail(user.email) &&
         !isAllowedDispatcherEmail(user.email)
       ) {
-        return NextResponse.redirect(`${origin}/freight/login?error=unauthorized_dispatcher`);
+        return NextResponse.redirect(
+          productRedirect(origin, "/freight/login?error=unauthorized_dispatcher"),
+        );
       }
       const dest = rawNext ? next : "/freight/dispatcher/dashboard";
-      return NextResponse.redirect(`${origin}${dest}`);
+      return NextResponse.redirect(productRedirect(origin, dest));
     }
 
     if (role === "instructor") {
       const dest = rawNext ? next : "/freight/instructor/dashboard";
-      return NextResponse.redirect(`${origin}${dest}`);
+      return NextResponse.redirect(productRedirect(origin, dest));
     }
 
     if (role === "student") {
       if (profile?.enrollment_status === "paid") {
-        return NextResponse.redirect(`${origin}/freight/student/dashboard`);
+        return NextResponse.redirect(
+          productRedirect(origin, "/freight/student/dashboard"),
+        );
       }
       if (profile?.enrollment_status === "refunded") {
-        return NextResponse.redirect(`${origin}/freight/student/enrollment-ended`);
+        return NextResponse.redirect(
+          productRedirect(origin, "/freight/student/enrollment-ended"),
+        );
       }
-      return NextResponse.redirect(`${origin}/freight/student/enroll`);
+      return NextResponse.redirect(
+        productRedirect(origin, "/freight/student/enroll"),
+      );
     }
 
     if (role === "carrier") {
-      // If carrier signed in via Google without completing registration, force registration.
       if (!profile?.mc_number) {
-        return NextResponse.redirect(`${origin}/freight/carrier/register`);
+        return NextResponse.redirect(
+          productRedirect(origin, "/freight/carrier/register"),
+        );
       }
       if (profile?.carrier_status === "verified") {
-        return NextResponse.redirect(`${origin}/freight/carrier/dashboard`);
+        return NextResponse.redirect(
+          productRedirect(origin, "/freight/carrier/dashboard"),
+        );
       }
       if (profile?.carrier_status === "rejected") {
-        return NextResponse.redirect(`${origin}/freight/carrier/rejected`);
+        return NextResponse.redirect(
+          productRedirect(origin, "/freight/carrier/rejected"),
+        );
       }
       if (profile?.carrier_status === "suspended") {
-        return NextResponse.redirect(`${origin}/freight/carrier/suspended`);
+        return NextResponse.redirect(
+          productRedirect(origin, "/freight/carrier/suspended"),
+        );
       }
-      return NextResponse.redirect(`${origin}/freight/carrier/pending`);
+      return NextResponse.redirect(
+        productRedirect(origin, "/freight/carrier/pending"),
+      );
     }
 
-    return NextResponse.redirect(`${origin}/freight/login`);
+    return NextResponse.redirect(productRedirect(origin, "/freight/login"));
   }
 
   const isDispatcher = isAllowedDispatcherEmail(user?.email);
@@ -263,7 +309,9 @@ export async function GET(request: NextRequest) {
         .catch(() => {});
     }
     if (user) scheduleOAuthAuthNotify(request, user, "dispatcher");
-    return NextResponse.redirect(`${origin}/freight/dispatcher/dashboard`);
+    return NextResponse.redirect(
+      productRedirect(origin, "/freight/dispatcher/dashboard"),
+    );
   }
 
   const srNotify = getServiceRoleClient();
@@ -280,12 +328,11 @@ export async function GET(request: NextRequest) {
 
   const isAdmin = isAllowedAdminEmail(user?.email);
 
-  // Enforce portal vs admin destinations so users land in the correct UI.
   if (isAdmin) {
     const adminNext = nextWantsAdmin ? next : "/admin/dashboard";
-    return NextResponse.redirect(`${origin}${adminNext}`);
+    return NextResponse.redirect(productRedirect(origin, adminNext));
   }
 
   const portalNext = nextWantsAdmin ? "/portal/dashboard" : next;
-  return NextResponse.redirect(`${origin}${portalNext}`);
+  return NextResponse.redirect(productRedirect(origin, portalNext));
 }

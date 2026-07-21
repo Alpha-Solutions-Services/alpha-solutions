@@ -1,18 +1,13 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/data/site";
 
-/** Public marketing + auth-entry routes only (dashboards omitted). */
+/** Public marketing routes only — portals live on product subdomains. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = SITE_URL.replace(/\/$/, "");
   const now = new Date();
   const paths = [
     "/",
     "/freight",
-    "/freight/login",
-    "/freight/student",
-    "/freight/student/enroll",
-    "/freight/carrier/register",
-    "/freight/driver/accept-invite",
     "/services",
     "/pricing",
     "/about",
@@ -22,7 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/apps",
     "/terms-of-service",
     "/privacy-policy",
-    "/freight/dispatch-training",
+    "/sitemap",
   ];
 
   return paths.map((path) => ({

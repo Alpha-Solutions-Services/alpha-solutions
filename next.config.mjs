@@ -81,8 +81,100 @@ const nextConfig = {
       },
       {
         source: "/portal",
-        destination: "/portal/login",
-        permanent: true,
+        destination: "https://portal.alphasolutions.software/login",
+        permanent: false,
+      },
+      {
+        source: "/portal/:path*",
+        destination: "https://portal.alphasolutions.software/:path*",
+        permanent: false,
+      },
+      {
+        source: "/admin/login",
+        destination: "https://portal.alphasolutions.software/login?role=admin",
+        permanent: false,
+      },
+      {
+        source: "/admin",
+        destination: "https://portal.alphasolutions.software/admin",
+        permanent: false,
+      },
+      {
+        source: "/admin/:path*",
+        destination: "https://portal.alphasolutions.software/admin",
+        permanent: false,
+      },
+      // Freight ops portal → TMS
+      {
+        source: "/freight/login",
+        destination: "https://tms.alphasolutions.software/",
+        permanent: false,
+      },
+      {
+        source: "/freight/login/:path*",
+        destination: "https://tms.alphasolutions.software/",
+        permanent: false,
+      },
+      {
+        source: "/freight/dispatcher",
+        destination: "https://tms.alphasolutions.software/dispatcher",
+        permanent: false,
+      },
+      {
+        source: "/freight/dispatcher/:path*",
+        destination: "https://tms.alphasolutions.software/dispatcher/:path*",
+        permanent: false,
+      },
+      {
+        source: "/freight/carrier",
+        destination: "https://tms.alphasolutions.software/carrier",
+        permanent: false,
+      },
+      {
+        source: "/freight/carrier/:path*",
+        destination: "https://tms.alphasolutions.software/carrier/:path*",
+        permanent: false,
+      },
+      {
+        source: "/freight/driver",
+        destination: "https://tms.alphasolutions.software/driver",
+        permanent: false,
+      },
+      {
+        source: "/freight/driver/:path*",
+        destination: "https://tms.alphasolutions.software/driver/:path*",
+        permanent: false,
+      },
+      // Dispatch learning / academy
+      {
+        source: "/freight/dispatch-training",
+        destination: "https://learndispatch.alphasolutions.software/",
+        permanent: false,
+      },
+      {
+        source: "/freight/dispatch-training/:path*",
+        destination: "https://learndispatch.alphasolutions.software/:path*",
+        permanent: false,
+      },
+      {
+        source: "/freight/student",
+        destination: "https://learndispatch.alphasolutions.software/",
+        permanent: false,
+      },
+      {
+        source: "/freight/student/:path*",
+        destination: "https://learndispatch.alphasolutions.software/:path*",
+        permanent: false,
+      },
+      {
+        source: "/freight/instructor",
+        destination: "https://learndispatch.alphasolutions.software/",
+        permanent: false,
+      },
+      {
+        source: "/freight/instructor/:path*",
+        destination: "https://learndispatch.alphasolutions.software/:path*",
+        permanent: false,
       },
       {
         source: "/services/freight",

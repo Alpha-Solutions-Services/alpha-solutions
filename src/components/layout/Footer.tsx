@@ -3,6 +3,7 @@ import Link from "next/link";
 import Script from "next/script";
 import type { SVGProps } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
+import { LEARN_DISPATCH_URL, PORTAL_URL, TMS_URL } from "@/lib/product-hosts";
 
 const companyLinks = [
   { name: "About Us", href: "/about" },
@@ -15,7 +16,9 @@ const companyLinks = [
   { name: "Privacy Policy", href: "/privacy-policy" },
   { name: "Terms of Service", href: "/terms-of-service" },
   { name: "Sitemap", href: "/sitemap" },
-  { name: "Client Portal", href: "/portal/login" },
+  { name: "Client Portal", href: `${PORTAL_URL}/login`, external: true },
+  { name: "Freight Portal", href: TMS_URL, external: true },
+  { name: "Dispatch Learning", href: LEARN_DISPATCH_URL, external: true },
 ] as const;
 
 /** Pillar landing pages (same as homepage “practice areas”). */
@@ -188,12 +191,21 @@ export function Footer() {
             <ul className="space-y-2">
               {companyLinks.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-accent)]"
-                  >
-                    {link.name}
-                  </Link>
+                  {"external" in link && link.external ? (
+                    <a
+                      href={link.href}
+                      className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-accent)]"
+                    >
+                      {link.name}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-accent)]"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
