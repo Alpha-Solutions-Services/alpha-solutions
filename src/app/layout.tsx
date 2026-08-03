@@ -34,6 +34,22 @@ const dmSans = DM_Sans({
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 
+/** Origin only — used for DNS preconnect (never hardcode a Sanity project id as .supabase.co). */
+function preconnectOrigin(raw: string | undefined): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+const supabasePreconnect = preconnectOrigin(
+  process.env.NEXT_PUBLIC_SUPABASE_URL
+);
+const sanityCdnPreconnect = "https://cdn.sanity.io";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   manifest: "/site.webmanifest",
@@ -99,7 +115,10 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" type="image/png" sizes="512x512" />
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon.png" />
-        <link rel="preconnect" href="https://lx58x5y4.supabase.co" crossOrigin="" />
+        {supabasePreconnect ? (
+          <link rel="preconnect" href={supabasePreconnect} crossOrigin="" />
+        ) : null}
+        <link rel="preconnect" href={sanityCdnPreconnect} crossOrigin="" />
       </head>
       {gtmId ? (
         <Script id="gtm-init" strategy="lazyOnload">
