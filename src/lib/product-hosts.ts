@@ -5,6 +5,7 @@
 export const PORTAL_URL = "https://portal.alphasolutions.software";
 export const TMS_URL = "https://tms.alphasolutions.software";
 export const LEARN_DISPATCH_URL = "https://learndispatch.alphasolutions.software";
+export const ACADEMY_URL = "https://academy.alphasolutions.software";
 
 export function portalHref(path = "/"): string {
   const p = path.startsWith("/") ? path : `/${path}`;
@@ -19,6 +20,11 @@ export function tmsHref(path = "/"): string {
 export function learnDispatchHref(path = "/"): string {
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${LEARN_DISPATCH_URL}${p === "/" ? "/" : p}`;
+}
+
+export function academyHref(path = "/"): string {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${ACADEMY_URL}${p === "/" ? "/" : p}`;
 }
 
 /** Legacy in-app portal path prefixes (now redirected off the marketing site). */

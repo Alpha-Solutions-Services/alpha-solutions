@@ -3,7 +3,12 @@ import Link from "next/link";
 import Script from "next/script";
 import type { SVGProps } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { LEARN_DISPATCH_URL, PORTAL_URL, TMS_URL } from "@/lib/product-hosts";
+import {
+  ACADEMY_URL,
+  LEARN_DISPATCH_URL,
+  PORTAL_URL,
+  TMS_URL,
+} from "@/lib/product-hosts";
 
 const companyLinks = [
   { name: "About Us", href: "/about" },
@@ -19,6 +24,7 @@ const companyLinks = [
   { name: "Client Portal", href: `${PORTAL_URL}/login`, external: true },
   { name: "Freight Portal", href: TMS_URL, external: true },
   { name: "Dispatch Learning", href: LEARN_DISPATCH_URL, external: true },
+  { name: "Alpha Academy", href: ACADEMY_URL, external: true },
 ] as const;
 
 /** Pillar landing pages (same as homepage “practice areas”). */
