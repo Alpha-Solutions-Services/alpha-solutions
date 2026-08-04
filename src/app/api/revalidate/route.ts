@@ -38,11 +38,10 @@ function pathsForType(_type: string | undefined, doc: WebhookDoc): string[] {
       if (slug) paths.push(`/apps/${slug}`);
       break;
     case "review":
-      paths.push("/reviews");
+      paths.push("/");
       break;
     case "teamMember":
-      paths.push("/team");
-      if (slug) paths.push(`/team/${slug}`);
+      paths.push("/about");
       break;
     default:
       paths.push("/");

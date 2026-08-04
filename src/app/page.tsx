@@ -5,8 +5,14 @@ import {
   mapFeaturedProjectsForHome,
   type FeaturedSanityDoc,
 } from "@/lib/sanity/featured-home";
-import { getFeaturedProjects } from "@/lib/sanity/queries";
+import {
+  mapReviewsForHome,
+  type SanityReviewDoc,
+} from "@/lib/sanity/reviews";
+import { getFeaturedProjects, getReviews } from "@/lib/sanity/queries";
 import HomePageClient from "./HomePageClient";
+
+export const revalidate = 3600;
 
 const title = "Web Development, SaaS & AI Automation | Utah & Global";
 const description =
@@ -72,8 +78,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     redirect(`/auth/callback?${qp.toString()}`);
   }
 
-  const featuredRaw = await getFeaturedProjects<FeaturedSanityDoc>();
+  const [featuredRaw, reviewsRaw] = await Promise.all([
+    getFeaturedProjects<FeaturedSanityDoc>(),
+    getReviews<SanityReviewDoc>(),
+  ]);
   const featuredProjects = mapFeaturedProjectsForHome(featuredRaw);
+  const testimonials = mapReviewsForHome(reviewsRaw);
 
   const homeSchema = {
     "@context": "https://schema.org",
@@ -118,7 +128,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchema) }}
       />
-      <HomePageClient featuredProjects={featuredProjects} />
+      <HomePageClient
+        featuredProjects={featuredProjects}
+        testimonials={testimonials}
+      />
     </>
   );
 }

@@ -197,13 +197,13 @@ export async function getClientProjects<T = unknown>(
 
 // ─── Team ──────────────────────────────────────────────────────────────────
 
-const TEAM_MEMBERS = `*[_type == "teamMember"] | order(order asc) {
+const TEAM_MEMBERS = `*[_type == "teamMember" && isActive != false] | order(order asc, name asc) {
   _id,
   name,
   slug,
   position,
   bio,
-  profileImage,
+  "profileImage": coalesce(profileImage, avatar),
   email,
   phone,
   socialLinks,
@@ -397,16 +397,16 @@ export async function getAppBySlug<T = unknown>(
 
 // ─── Reviews ───────────────────────────────────────────────────────────────
 
-const REVIEWS = `*[_type == "review"] | order(coalesce(featured, verified) desc, order asc, _createdAt desc) {
+const REVIEWS = `*[_type == "review" && (approved == true || featured == true)] | order(coalesce(featured, false) desc, order asc, _createdAt desc) {
   _id,
-  clientName: coalesce(clientName, name),
+  "clientName": coalesce(clientName, name),
   companyName,
   rating,
-  reviewText: coalesce(reviewText, content),
+  "reviewText": coalesce(reviewText, content),
   clientImage,
-  featured: coalesce(featured, verified, false),
+  "featured": coalesce(featured, verified, false),
   approved,
-  createdAt: coalesce(createdAt, _createdAt),
+  "createdAt": coalesce(createdAt, _createdAt),
   project-> {
     title,
     slug
@@ -421,14 +421,14 @@ const REVIEWS = `*[_type == "review"] | order(coalesce(featured, verified) desc,
 
 const REVIEWS_ALL = `*[_type == "review"] | order(coalesce(featured, verified) desc, order asc, _createdAt desc) {
   _id,
-  clientName: coalesce(clientName, name),
+  "clientName": coalesce(clientName, name),
   companyName,
   rating,
-  reviewText: coalesce(reviewText, content),
+  "reviewText": coalesce(reviewText, content),
   clientImage,
-  featured: coalesce(featured, verified, false),
+  "featured": coalesce(featured, verified, false),
   approved,
-  createdAt: coalesce(createdAt, _createdAt),
+  "createdAt": coalesce(createdAt, _createdAt),
   _createdAt,
   _updatedAt
 }`;

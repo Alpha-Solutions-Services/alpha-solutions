@@ -5,9 +5,11 @@ import { motion } from "framer-motion";
 import clsx from "clsx";
 import Image from "next/image";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { CALENDLY_BOOKING_URL } from "@/data/site";
 import { PILLARS, SERVICES, type Service } from "@/data/services";
 import type { HomeFeaturedProject } from "@/lib/sanity/featured-home";
+import type { HomeTestimonial } from "@/lib/sanity/reviews";
 
 /**
  * Site chrome: `Navbar` and `Footer` from `@/components/layout` are rendered
@@ -66,7 +68,7 @@ const trustedBusinesses = [
   { name: "Redmon Resources LLC", domain: "redmonresourcesllc.com" },
 ] as const;
 
-const testimonials = [
+const fallbackTestimonials = [
   {
     quote:
       "The project was delivered with a strong focus on efficiency, scalability, and ease of use. Alpha Solutions delivered outstanding results, and their support throughout the project was excellent.",
@@ -74,6 +76,7 @@ const testimonials = [
     title: "Owner, Legacy Inc Global",
     location: "Dallas, Texas",
     tag: "AI Automation Project",
+    rating: 5,
   },
   {
     quote:
@@ -82,6 +85,7 @@ const testimonials = [
     title: "Owner, Prospera Enterprises",
     location: "United States",
     tag: "Web Development + Branding",
+    rating: 5,
   },
 ] as const;
 
@@ -106,6 +110,30 @@ const pillarLeftAccent: Record<
   purple: "border-l-violet-400",
   green: "border-l-emerald-400",
 };
+
+function StarRating({ rating }: { rating: number }) {
+  const filled = Math.min(5, Math.max(0, Math.round(rating)));
+  return (
+    <div
+      className="mt-3 flex items-center gap-0.5"
+      role="img"
+      aria-label={`${filled} out of 5 stars`}
+    >
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          className={clsx(
+            "h-4 w-4",
+            i < filled
+              ? "fill-[var(--color-accent)] text-[var(--color-accent)]"
+              : "fill-transparent text-[var(--color-border)]"
+          )}
+          aria-hidden
+        />
+      ))}
+    </div>
+  );
+}
 
 function FadeSection({
   children,
@@ -201,12 +229,43 @@ type ShowcaseCard = {
 
 export default function HomePageClient({
   featuredProjects = [],
+  testimonials: sanityTestimonials = [],
 }: {
   featuredProjects?: HomeFeaturedProject[];
+  testimonials?: HomeTestimonial[];
 }) {
   const heroRef = useRef<HTMLElement | null>(null);
   const [videoMounted, setVideoMounted] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+
+  const testimonials = useMemo(() => {
+    if (sanityTestimonials.length > 0) {
+      return sanityTestimonials.map((t) => ({
+        key: t._id,
+        quote: t.quote,
+        name: t.name,
+        title: t.title,
+        location: t.location,
+        tag: t.tag,
+        rating: t.rating,
+        image: t.image,
+        fromSanity: true as const,
+      }));
+    }
+    return fallbackTestimonials.map((t, i) => ({
+      key: `fallback-${i}`,
+      quote: t.quote,
+      name: t.name,
+      title: t.title,
+      location: t.location,
+      tag: t.tag,
+      rating: t.rating,
+      image: null as string | null,
+      fromSanity: false as const,
+    }));
+  }, [sanityTestimonials]);
+
+  const reviewsFromSanity = sanityTestimonials.length > 0;
 
   const showcaseProjects: ShowcaseCard[] = useMemo(() => {
     if (featuredProjects.length > 0) {
@@ -761,30 +820,43 @@ export default function HomePageClient({
               What Our Clients Say
             </h3>
             <p className="mx-auto mt-3 max-w-2xl text-[var(--color-muted)]">
-              Verified Clutch testimonials from web development and AI
-              automation engagements.
+              {reviewsFromSanity
+                ? "Client reviews published from Sanity Studio, plus our verified Clutch profile."
+                : "Verified Clutch testimonials from web development and AI automation engagements."}
             </p>
             <div className="mt-10 grid gap-5 lg:grid-cols-2">
               {testimonials.map((item) => (
                 <article
-                  key={item.name}
+                  key={item.key}
                   className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25 p-6 text-left"
                 >
-                  <p className="text-sm leading-relaxed text-[var(--color-muted)]">
+                  <StarRating rating={item.rating} />
+                  <p className="mt-4 text-sm leading-relaxed text-[var(--color-muted)]">
                     &quot;{item.quote}&quot;
                   </p>
                   <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                     {item.tag}
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-[var(--color-muted)]">
-                    {item.title} · {item.location}
-                  </p>
-                  <p className="mt-2 text-xs font-semibold text-[var(--color-accent)]">
-                    5/5 stars
-                  </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : null}
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--color-text)]">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-[var(--color-muted)]">
+                        {item.title}
+                        {item.location ? ` · ${item.location}` : ""}
+                      </p>
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>

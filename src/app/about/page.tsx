@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import YouTubeEmbed from "@/components/shared/YouTubeEmbed";
 import { absoluteUrl, SITE_NAME } from "@/data/site";
+import {
+  mapTeamMembersForAbout,
+  type HomeTeamMember,
+  type SanityTeamMemberDoc,
+} from "@/lib/sanity/team";
+import { getTeamMembers } from "@/lib/sanity/queries";
 
 export const metadata: Metadata = {
   title: "About Us | Alpha Solutions Services LLC",
@@ -22,7 +28,23 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about" },
 };
 
-export default function AboutPage() {
+export const revalidate = 3600;
+
+const FALLBACK_TEAM: HomeTeamMember[] = [
+  {
+    _id: "fallback-founder",
+    name: "Muhammad Mikran Sandhu",
+    position: "Founder & Full Stack Developer",
+    bio: "Full-stack developer and founder of Alpha Solutions Services LLC. Specializing in React, Next.js, Node.js, Python, and AI integrations. Building multiple income streams through software, SaaS, and logistics tech.",
+    image: "/Team/Founder.webp",
+  },
+];
+
+export default async function AboutPage() {
+  const raw = await getTeamMembers<SanityTeamMemberDoc>();
+  const fromSanity = mapTeamMembersForAbout(raw);
+  const team = fromSanity.length > 0 ? fromSanity : FALLBACK_TEAM;
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -127,64 +149,70 @@ export default function AboutPage() {
           <h2 style={{ fontSize: 28, marginBottom: 40 }}>The team</h2>
           <div
             style={{
-              display: "flex",
-              gap: 32,
-              alignItems: "flex-start",
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: 16,
-              padding: "32px",
-              maxWidth: 520,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+              gap: 20,
             }}
           >
-            <div
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: "50%",
-                overflow: "hidden",
-                flexShrink: 0,
-                border: "2px solid var(--color-border-glow)",
-                background: "var(--color-accent-dim)",
-                position: "relative",
-              }}
-            >
-              <Image
-                src="/Team/Founder.webp"
-                alt="Muhammad Mikran Sandhu, Founder of Alpha Solutions Services LLC"
-                width={96}
-                height={96}
-                className="rounded-full object-cover"
-                sizes="96px"
-                priority
-              />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 20, marginBottom: 4 }}>
-                Muhammad Mikran Sandhu
-              </h3>
+            {team.map((member) => (
               <div
+                key={member._id}
                 style={{
-                  color: "var(--color-accent)",
-                  fontSize: 13,
-                  marginBottom: 12,
+                  display: "flex",
+                  gap: 24,
+                  alignItems: "flex-start",
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 16,
+                  padding: 32,
                 }}
               >
-                Founder & Full Stack Developer
+                <div
+                  style={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    border: "2px solid var(--color-border-glow)",
+                    background: "var(--color-accent-dim)",
+                    position: "relative",
+                  }}
+                >
+                  <Image
+                    src={member.image || "/Team/Founder.webp"}
+                    alt={`${member.name}, ${member.position}`}
+                    width={96}
+                    height={96}
+                    className="rounded-full object-cover"
+                    sizes="96px"
+                  />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 20, marginBottom: 4 }}>{member.name}</h3>
+                  <div
+                    style={{
+                      color: "var(--color-accent)",
+                      fontSize: 13,
+                      marginBottom: 12,
+                    }}
+                  >
+                    {member.position}
+                  </div>
+                  {member.bio ? (
+                    <p
+                      style={{
+                        color: "var(--color-muted)",
+                        fontSize: 14,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {member.bio}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-              <p
-                style={{
-                  color: "var(--color-muted)",
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                }}
-              >
-                Full-stack developer and founder of Alpha Solutions Services LLC.
-                Specializing in React, Next.js, Node.js, Python, and AI
-                integrations. Building multiple income streams through software,
-                SaaS, and logistics tech.
-              </p>
-            </div>
+            ))}
           </div>
         </section>
 
