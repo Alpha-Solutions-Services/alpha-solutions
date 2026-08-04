@@ -197,16 +197,17 @@ export async function getClientProjects<T = unknown>(
 
 // ─── Team ──────────────────────────────────────────────────────────────────
 
-const TEAM_MEMBERS = `*[_type == "teamMember" && isActive != false] | order(order asc, name asc) {
+const TEAM_MEMBERS = `*[_type == "teamMember" && isActive != false && !(_id in path("drafts.**"))] | order(order asc, name asc) {
   _id,
   name,
   slug,
   position,
+  role,
   bio,
   "profileImage": coalesce(profileImage, avatar),
   email,
   phone,
-  socialLinks,
+  socialLinks[]{ platform, url },
   skills,
   startDate,
   isActive,

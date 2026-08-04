@@ -37,6 +37,10 @@ const FALLBACK_TEAM: HomeTeamMember[] = [
     position: "Founder & Full Stack Developer",
     bio: "Full-stack developer and founder of Alpha Solutions Services LLC. Specializing in React, Next.js, Node.js, Python, and AI integrations. Building multiple income streams through software, SaaS, and logistics tech.",
     image: "/Team/Founder.webp",
+    email: null,
+    phone: null,
+    socialLinks: [],
+    skills: [],
   },
 ];
 
@@ -188,7 +192,7 @@ export default async function AboutPage() {
                     sizes="96px"
                   />
                 </div>
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <h3 style={{ fontSize: 20, marginBottom: 4 }}>{member.name}</h3>
                   <div
                     style={{
@@ -205,10 +209,90 @@ export default async function AboutPage() {
                         color: "var(--color-muted)",
                         fontSize: 14,
                         lineHeight: 1.6,
+                        marginBottom: 14,
                       }}
                     >
                       {member.bio}
                     </p>
+                  ) : null}
+                  {(member.email || member.phone) && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "8px 16px",
+                        marginBottom: member.socialLinks.length || member.skills.length ? 12 : 0,
+                        fontSize: 13,
+                      }}
+                    >
+                      {member.email ? (
+                        <a
+                          href={`mailto:${member.email}`}
+                          style={{ color: "var(--color-text)", textDecoration: "none" }}
+                        >
+                          {member.email}
+                        </a>
+                      ) : null}
+                      {member.phone ? (
+                        <a
+                          href={`tel:${member.phone.replace(/\s+/g, "")}`}
+                          style={{ color: "var(--color-muted)", textDecoration: "none" }}
+                        >
+                          {member.phone}
+                        </a>
+                      ) : null}
+                    </div>
+                  )}
+                  {member.socialLinks.length > 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 12,
+                        marginBottom: member.skills.length ? 12 : 0,
+                      }}
+                    >
+                      {member.socialLinks.map((link) => (
+                        <a
+                          key={`${member._id}-${link.platform}-${link.url}`}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "var(--color-accent)",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            textDecoration: "none",
+                          }}
+                        >
+                          {link.platform} →
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                  {member.skills.length > 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 8,
+                      }}
+                    >
+                      {member.skills.map((skill) => (
+                        <span
+                          key={`${member._id}-${skill}`}
+                          style={{
+                            fontSize: 11,
+                            color: "var(--color-muted)",
+                            border: "1px solid var(--color-border)",
+                            borderRadius: 999,
+                            padding: "4px 10px",
+                          }}
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
               </div>
