@@ -824,14 +824,23 @@ export default function HomePageClient({
                 ? "Client reviews published from Sanity Studio, plus our verified Clutch profile."
                 : "Verified Clutch testimonials from web development and AI automation engagements."}
             </p>
-            <div className="mt-10 grid gap-5 lg:grid-cols-2">
+            <div
+              className={clsx(
+                "mt-10 grid gap-5",
+                testimonials.length === 1 && "mx-auto max-w-2xl grid-cols-1",
+                testimonials.length === 2 &&
+                  "mx-auto max-w-5xl grid-cols-1 sm:grid-cols-2",
+                testimonials.length >= 3 &&
+                  "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+              )}
+            >
               {testimonials.map((item) => (
                 <article
                   key={item.key}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25 p-6 text-left"
+                  className="flex h-full flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/25 p-6 text-left"
                 >
                   <StarRating rating={item.rating} />
-                  <p className="mt-4 text-sm leading-relaxed text-[var(--color-muted)]">
+                  <p className="mt-4 flex-1 text-sm leading-relaxed text-[var(--color-muted)]">
                     &quot;{item.quote}&quot;
                   </p>
                   <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">

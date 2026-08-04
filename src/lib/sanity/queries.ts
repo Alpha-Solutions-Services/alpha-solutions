@@ -398,14 +398,14 @@ export async function getAppBySlug<T = unknown>(
 
 // ─── Reviews ───────────────────────────────────────────────────────────────
 
-const REVIEWS = `*[_type == "review" && (approved == true || featured == true)] | order(coalesce(featured, false) desc, order asc, _createdAt desc) {
+const REVIEWS = `*[_type == "review" && !(_id in path("drafts.**")) && (approved == true || featured == true) && defined(coalesce(reviewText, content))] | order(select(featured == true => 0, 1) asc, order asc, _createdAt desc) [0...12] {
   _id,
   "clientName": coalesce(clientName, name),
   companyName,
   rating,
   "reviewText": coalesce(reviewText, content),
   clientImage,
-  "featured": coalesce(featured, verified, false),
+  "featured": featured == true,
   approved,
   "createdAt": coalesce(createdAt, _createdAt),
   project-> {

@@ -24,20 +24,25 @@ export type SanityReviewDoc = {
   app?: { name?: string | null } | null;
 };
 
+/** Homepage can grow with CMS content; keep the section readable. */
+export const HOME_REVIEW_LIMIT = 6;
+
 export function mapReviewsForHome(raw: SanityReviewDoc[]): HomeTestimonial[] {
   return raw
     .filter((r) => r._id && (r.reviewText ?? "").trim())
+    .slice(0, HOME_REVIEW_LIMIT)
     .map((r) => {
       const quote = String(r.reviewText).trim();
       const company = (r.companyName ?? "").trim();
       const projectTag = (r.project?.title ?? r.app?.name ?? "").trim();
+      const isFeatured = r.featured === true;
       return {
         _id: String(r._id),
-        quote: quote.length > 420 ? `${quote.slice(0, 417).trimEnd()}…` : quote,
+        quote: quote.length > 360 ? `${quote.slice(0, 357).trimEnd()}…` : quote,
         name: (r.clientName ?? "Client").trim() || "Client",
         title: company || "Client",
         location: "",
-        tag: projectTag || (r.featured ? "Featured review" : "Client review"),
+        tag: projectTag || (isFeatured ? "Featured review" : "Client review"),
         rating: Math.min(5, Math.max(1, Number(r.rating) || 5)),
         image: urlForImage(r.clientImage, 96),
       };
